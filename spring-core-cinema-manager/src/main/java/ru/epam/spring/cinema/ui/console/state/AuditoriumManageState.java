@@ -62,6 +62,6 @@ public class AuditoriumManageState extends AbstractState {
     }
 
     private void printAuditorium(Auditorium a) {
-        System.out.println(a.getName() + ", " + a.getNumberOfSeats() + " seats, vips: " + a.getVipSeatNumbers());
+        System.out.println(a.getName() + ", " + a.getCapacity() + " seats, vips: " + a.getVipSeatNumbers());
     }
 }

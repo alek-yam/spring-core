@@ -4,15 +4,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -30,6 +29,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
 import ru.epam.spring.cinema.repository.EventRepository;
 import ru.epam.spring.cinema.repository.exception.RepositoryException;
@@ -60,7 +60,7 @@ public class JdbcEventRepository implements EventRepository {
 
 	@Override
     public Event getById(@Nonnull Long id) {
-        String sql = "SELECT e.id, e.name, e.rate, e.price, a.airDate, a.auditoriumName" +
+        String sql = "SELECT e.id, e.name, e.rate, e.price, a.id AS assignmentId, a.airDate, a.auditoriumId" +
         		" FROM events e LEFT JOIN eventAssignments a ON e.id = a.eventId WHERE e.id = ?";
 
         List<Event> events = template.query(sql, new Object[]{id}, new EventExtractor());
@@ -73,13 +73,13 @@ public class JdbcEventRepository implements EventRepository {
         	return events.get(0);
         }
 
-        throw new RepositoryException("Cannot get event by ID [" + id + "]: more than one found.");
+        throw new RepositoryException("More than one event with ID [" + id + "] were found.");
     }
 
 	@Override
     public @Nonnull
     Collection<Event> getAll() {
-        String sql = "SELECT e.id, e.name, e.rate, e.price, a.airDate, a.auditoriumName" +
+        String sql = "SELECT e.id, e.name, e.rate, e.price, a.id AS assignmentId, a.airDate, a.auditoriumId" +
         		" FROM events e LEFT JOIN eventAssignments a ON e.id = a.eventId";
         List<Event> events = template.query(sql, new EventExtractor());
         return events;
@@ -87,23 +87,18 @@ public class JdbcEventRepository implements EventRepository {
 
 	@Override
     public Event save(@Nonnull Event object) {
-		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("name", object.getName());
-		paramMap.put("rate", object.getRating().toString());
-		paramMap.put("price", object.getBasePrice());
-
-	    if (object.getId() == null) {
+		Map<String, Object> paramMap = eventToMap(object);
+	    if (paramMap.get("id") == null) {
 	    	KeyHolder keyHolder = new GeneratedKeyHolder();
 	    	insertEvent.updateByNamedParam(paramMap, keyHolder);
 	    	object.setId(keyHolder.getKey().longValue());
-	    	insertAssigments(object.getId(), object.getAuditoriums());
+	    	insertAssigments(object.getId(), object.getAssignments());
 	    } else {
-	    	paramMap.put("id", object.getId());
 	    	int updatedRows = updateEvent.updateByNamedParam(paramMap);
 	    	if (updatedRows == 0) {
-	    		throw new RepositoryException("Cannot update event with ID [" + object.getId() + "]: not found.");
+	    		throw new RepositoryException("Event with ID [" + object.getId() + "] was not found.");
 	    	}
-	    	updateAssigments(object.getId(), object.getAuditoriums());
+	    	updateAssigments(object.getId(), object.getAssignments());
 	    }
 
 	    return object;
@@ -114,11 +109,12 @@ public class JdbcEventRepository implements EventRepository {
 		String deleteFromEventsSql = "DELETE FROM events WHERE id = ?";
 		int updatedRows = template.update(deleteFromEventsSql, id);
     	if (updatedRows == 0) {
-    		throw new RepositoryException("Cannot remove event with ID [" + id + "]: not found.");
+    		throw new RepositoryException("Event with ID [" + id + "] was not found.");
     	}
 
-    	String deleteFromAssigmentsSql = "DELETE FROM eventAssignments WHERE eventId = ?";
-    	template.update(deleteFromAssigmentsSql, id);
+    	// Not required. Event assignments will be removed automatically while removing corresponding event
+    	//String deleteFromAssigmentsSql = "DELETE FROM eventAssignments WHERE eventId = ?";
+    	//template.update(deleteFromAssigmentsSql, id);
     }
 
 	@Override
@@ -128,7 +124,7 @@ public class JdbcEventRepository implements EventRepository {
 
         String name = filter.getName();
         if (name != null) {
-            String sql = "SELECT e.id, e.name, e.rate, e.price, a.airDate, a.auditoriumName" +
+            String sql = "SELECT e.id, e.name, e.rate, e.price, a.id AS assignmentId, a.airDate, a.auditoriumId" +
             		" FROM events e LEFT JOIN eventAssignments a ON e.id = a.eventId WHERE e.name = ?";
 
             events = template.query(sql, new Object[]{name}, new EventExtractor());
@@ -137,45 +133,40 @@ public class JdbcEventRepository implements EventRepository {
         return events;
     }
 
-	private void insertAssigments(Long eventId, Map<Calendar, String> auditoriums) {
-		for (Entry<Calendar,String> e : auditoriums.entrySet()) {
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("eventId", eventId);
-			Timestamp airDate = new Timestamp(e.getKey().getTime().getTime());
-			paramMap.put("airDate", airDate);
-			paramMap.put("auditoriumName", e.getValue());
+	private void insertAssigments(Long eventId, Set<EventAssignment> assignments) {
+		for (EventAssignment a : assignments) {
 
+			if (a.getEventId() == null) {
+				a.setEventId(eventId);
+			} else if (!a.getEventId().equals(eventId)) {
+				throw new RepositoryException("Specified assignment event ID [" + a.getEventId()
+					+ "] doesn't match with parent event ID [" + eventId + "].");
+			}
+
+			Map<String, Object> paramMap = assignmentToMap(a);
 			insertAssigment.updateByNamedParam(paramMap);
 		}
 
 		insertAssigment.flush();
 	}
 
-	private void updateAssigments(Long eventId, Map<Calendar, String> auditoriums) {
+	private void updateAssigments(Long eventId, Set<EventAssignment> assignments) {
 		Event event = getById(eventId);
-		Set<EventAssigment> curentAssigments = convertToAssigments(event.getId(), event.getAuditoriums());
-		Set<EventAssigment> newAssigments = convertToAssigments(eventId, auditoriums);
+		Set<EventAssignment> curentAssigments = event.getAssignments();
+		Set<EventAssignment> newAssigments = assignments;
 
-		for (EventAssigment a : newAssigments) {
+		for (EventAssignment a : newAssigments) {
 			if (!curentAssigments.contains(a)) {
-				Map<String, Object> paramMap = new HashMap<>();
-				paramMap.put("eventId", a.getEventId());
-				Timestamp airDate = new Timestamp(a.getAirDate().getTimeInMillis());
-				paramMap.put("airDate", airDate);
-				paramMap.put("auditoriumName", a.getAuditoriumName());
+				Map<String, Object> paramMap = assignmentToMap(a);
 				insertAssigment.updateByNamedParam(paramMap);
 			}
 		}
 
 		insertAssigment.flush();
 
-		for (EventAssigment a : curentAssigments) {
+		for (EventAssignment a : curentAssigments) {
 			if (!newAssigments.contains(a)) {
-				Map<String, Object> paramMap = new HashMap<>();
-				paramMap.put("eventId", a.getEventId());
-				Timestamp airDate = new Timestamp(a.getAirDate().getTimeInMillis());
-				paramMap.put("airDate", airDate);
-				paramMap.put("auditoriumName", a.getAuditoriumName());
+				Map<String, Object> paramMap = assignmentToMap(a);
 				removeAssigment.updateByNamedParam(paramMap);
 			}
 		}
@@ -209,18 +200,36 @@ public class JdbcEventRepository implements EventRepository {
 		            map.put(id, event);
 	        	}
 
-	        	Timestamp timestamp = rs.getTimestamp("airDate");
-	        	Calendar airDate = null;
-	        	if (timestamp != null) {
-		            airDate = new GregorianCalendar();
-		            airDate.setTimeInMillis(timestamp.getTime());
-		            event.getAirDates().add(airDate);
-	        	}
+	        	long assignmentId = rs.getLong("assignmentId");
+	        	if (assignmentId != 0) {
 
-	            String auditoriumName = rs.getString("auditoriumName");
-	            if (airDate != null && auditoriumName != null) {
-	            	event.getAuditoriums().put(airDate, auditoriumName);
-	            }
+	        		long auditoriumId = rs.getLong("auditoriumId");
+
+	        		if (auditoriumId == 0) {
+	        			throw new RepositoryException("Auditorium ID is not defined.");
+	        		}
+
+	        		Timestamp airTimestamp = rs.getTimestamp("airDate");
+
+	        		if (airTimestamp == null) {
+	        			throw new RepositoryException("Air date is not defined.");
+	        		}
+
+	        		LocalDateTime airDate = airTimestamp.toLocalDateTime();
+
+	        		EventAssignment assignment = new EventAssignment();
+	        		assignment.setId(id);
+	        		assignment.setEventId(event.getId());
+	        		assignment.setAuditoriumId(auditoriumId);
+	        		assignment.setAirDate(airDate);
+
+	        		Set<EventAssignment> assignments = event.getAssignments();
+	        		if (assignments == null) {
+	        			assignments = new HashSet<EventAssignment>();
+	        		}
+
+	        		assignments.add(assignment);
+	        	}
 	        }
 
 	        return new ArrayList<Event>(map.values());
@@ -262,8 +271,8 @@ public class JdbcEventRepository implements EventRepository {
 
 	private static final class InsertAssigment extends BatchSqlUpdate {
 		private static final String SQL_INCERT_ASSIGMENT =
-				"INSERT INTO eventAssignments (eventId, airDate, auditoriumName) " +
-				"VALUES (:eventId, :airDate, :auditoriumName)";
+				"INSERT INTO eventAssignments (eventId, airDate, auditoriumId) " +
+				"VALUES (:eventId, :airDate, :auditoriumId)";
 
 		private static final int BATCH_SIZE = 10;
 
@@ -271,27 +280,56 @@ public class JdbcEventRepository implements EventRepository {
 			super(dataSource, SQL_INCERT_ASSIGMENT);
 			declareParameter(new SqlParameter("eventId", Types.INTEGER));
 			declareParameter(new SqlParameter("airDate", Types.TIMESTAMP));
-			declareParameter(new SqlParameter("auditoriumName", Types.VARCHAR));
+			declareParameter(new SqlParameter("auditoriumId", Types.INTEGER));
 			setBatchSize(BATCH_SIZE);
 		}
 	}
 
 	private static final class RemoveAssigment extends BatchSqlUpdate {
 		private static final String SQL_REMOVE_ASSIGMENT =
-				"DELETE FROM eventAssignments " +
-				"WHERE eventId=:eventId AND airDate=:airDate AND auditoriumName=:auditoriumName";
+				"DELETE FROM eventAssignments WHERE id=:id";
 
 		private static final int BATCH_SIZE = 10;
 
 		public RemoveAssigment(DataSource dataSource) {
 			super(dataSource, SQL_REMOVE_ASSIGMENT);
-			declareParameter(new SqlParameter("eventId", Types.INTEGER));
-			declareParameter(new SqlParameter("airDate", Types.TIMESTAMP));
-			declareParameter(new SqlParameter("auditoriumName", Types.VARCHAR));
+			declareParameter(new SqlParameter("id", Types.INTEGER));
 			setBatchSize(BATCH_SIZE);
 		}
 	}
 
+	private Map<String, Object> eventToMap(Event event) {
+		Map<String, Object> paramMap = new HashMap<>();
+
+		if (event.getId() != null) {
+			paramMap.put("id", event.getId());
+		}
+
+		paramMap.put("name", event.getName());
+		paramMap.put("rate", event.getRating().toString());
+		paramMap.put("price", event.getBasePrice());
+
+		return paramMap;
+	}
+
+	private Map<String, Object> assignmentToMap(EventAssignment assignment) {
+		Map<String, Object> paramMap = new HashMap<>();
+
+		if (assignment.getId() != null) {
+			paramMap.put("id", assignment.getId());
+		}
+
+		paramMap.put("eventId", assignment.getEventId());
+		paramMap.put("auditoriumId", assignment.getAuditoriumId());
+
+		ZoneId zone = ZoneId.systemDefault();
+		Timestamp airTimestamp = new Timestamp(assignment.getAirDate().atZone(zone).toEpochSecond());
+		paramMap.put("airDate", airTimestamp);
+
+		return paramMap;
+	}
+
+	/*
 	private static final class EventAssigment {
 		private Long eventId;
 		private Calendar airDate;
@@ -376,4 +414,5 @@ public class JdbcEventRepository implements EventRepository {
 
 		return assigments;
 	}
+	*/
 }

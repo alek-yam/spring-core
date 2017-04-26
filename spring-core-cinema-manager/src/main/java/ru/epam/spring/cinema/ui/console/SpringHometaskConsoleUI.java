@@ -1,7 +1,10 @@
 package ru.epam.spring.cinema.ui.console;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.GregorianCalendar;
 
 import org.springframework.context.ApplicationContext;
@@ -10,6 +13,7 @@ import ru.epam.spring.cinema.aspect.CounterAspect;
 import ru.epam.spring.cinema.aspect.DiscountAspect;
 import ru.epam.spring.cinema.domain.Auditorium;
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
 import ru.epam.spring.cinema.domain.User;
 import ru.epam.spring.cinema.service.AuditoriumService;
@@ -59,7 +63,7 @@ public class SpringHometaskConsoleUI {
         if (auditorium == null) {
             throw new IllegalStateException("Failed to fill initial data - no auditoriums returned from AuditoriumService");
         }
-        if (auditorium.getNumberOfSeats() <= 0) {
+        if (auditorium.getCapacity() <= 0) {
             throw new IllegalStateException("Failed to fill initial data - no seats in the auditorium " + auditorium.getName());
         }
 
@@ -75,20 +79,26 @@ public class SpringHometaskConsoleUI {
         event.setName("Grand concert");
         event.setRating(EventRating.MID);
         event.setBasePrice(10);
-        Calendar airDate = new GregorianCalendar(2020, 6, 15, 19, 30);
-        event.addAirDateTime(airDate, auditorium);
 
+        EventAssignment assignment = new EventAssignment();
+        assignment.setAuditoriumId(auditorium.getId());
+        LocalDateTime airDate = LocalDateTime.of(2020, 7, 15, 19, 30);
+        assignment.setAirDate(airDate);
+        event.getAssignments().add(assignment);
         event = eventService.save(event);
 
-        bookingService.bookTickets(event, airDate, user, Collections.singleton(1L));
+        Date convertedDate = Date.from(airDate.atZone(ZoneId.systemDefault()).toInstant());
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(convertedDate);
+        bookingService.bookTickets(event, calendar, user, Collections.singleton(1L));
 
-        if (auditorium.getNumberOfSeats() > 1) {
+        if (auditorium.getCapacity() > 1) {
             User userNotRegistered = new User();
             userNotRegistered.setEmail("somebody@a.b");
             userNotRegistered.setFirstName("A");
             userNotRegistered.setLastName("Somebody");
 
-            bookingService.bookTickets(event, airDate, userNotRegistered, Collections.singleton(2L));
+            bookingService.bookTickets(event, calendar, userNotRegistered, Collections.singleton(2L));
         }
     }
 

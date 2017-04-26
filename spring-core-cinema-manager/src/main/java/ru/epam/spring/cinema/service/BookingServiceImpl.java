@@ -1,10 +1,14 @@
 package ru.epam.spring.cinema.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -21,6 +25,7 @@ import ru.epam.spring.cinema.domain.Auditorium;
 import ru.epam.spring.cinema.domain.BookingReport;
 import ru.epam.spring.cinema.domain.DiscountReport;
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
 import ru.epam.spring.cinema.domain.PriceItem;
 import ru.epam.spring.cinema.domain.PriceReport;
@@ -107,8 +112,9 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	public PriceReport getFinalPrice(@Nonnull Event event, @Nonnull Calendar date, @Nullable User user, @Nonnull Set<Long> seats) {
-		String audName = event.getAuditoriums().get(date);
-		Auditorium auditorium = auditoriumService.getByName(audName);
+		EventAssignment assignment = getAssignment(event, date);
+		Long audId = assignment.getAuditoriumId();
+		Auditorium auditorium = auditoriumService.getById(audId);
 		double totalPrice = 0;
 
 		for (Long sn : seats) {
@@ -194,6 +200,16 @@ public class BookingServiceImpl implements BookingService {
 		}
 
 		return ticketPrice;
+	}
+
+	private EventAssignment getAssignment(Event event, Calendar date) {
+		Date in = date.getTime();
+		ZoneId zone = ZoneId.systemDefault();
+		LocalDateTime localDate = LocalDateTime.ofInstant(in.toInstant(), zone);
+		Optional<EventAssignment> assignment = event.getAssignments().stream()
+				.filter(a-> a.getAirDate().equals(localDate)).findFirst();
+		return assignment.orElseThrow(()-> new RuntimeException("Event assignment with air date ["
+				+ localDate + "] was not found."));
 	}
 
 }

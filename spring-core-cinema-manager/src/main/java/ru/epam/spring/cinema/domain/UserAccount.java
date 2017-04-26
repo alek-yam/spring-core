@@ -5,7 +5,7 @@ package ru.epam.spring.cinema.domain;
  *
  * @author Alex_Yamskov
  */
-public class UserAccount {
+public class UserAccount extends DomainObject {
 	private final Long userId;
 	private double balance;
 

@@ -15,6 +15,8 @@ public interface AuditoriumRepository {
 
     public @Nonnull Collection<Auditorium> getAll();
 
+    public Auditorium getById(@Nonnull Long id);
+
     public Auditorium getByName(@Nonnull String name);
 
 }

@@ -1,55 +1,63 @@
 CREATE TABLE auditoriums (
-  name VARCHAR(60) NOT NULL,
-  capacity INT NOT NULL,
-  PRIMARY KEY (name)
+  id       INT         NOT NULL,
+  name     VARCHAR(60) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE (name)
 );
 
 CREATE TABLE seats (
-  num INT NOT NULL,
-  vip BOOLEAN NOT NULL,
-  auditoriumName VARCHAR(60) NOT NULL,
-  UNIQUE (num, auditoriumName)
+  auditoriumId INT     NOT NULL,
+  number       INT     NOT NULL,
+  vip          BOOLEAN NOT NULL,
+  PRIMARY KEY (auditoriumId, number),
+  FOREIGN KEY(auditoriumId) REFERENCES auditoriums(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE events (
-  id INT NOT NULL AUTO_INCREMENT,
-  name VARCHAR(60) NOT NULL,
-  rate VARCHAR(60) NOT NULL,
+  id    INT              NOT NULL AUTO_INCREMENT,
+  name  VARCHAR(60)      NOT NULL,
+  rate  VARCHAR(60)      NOT NULL,
   price DOUBLE PRECISION NOT NULL,
   PRIMARY KEY (id)
 );
 
 CREATE TABLE eventAssignments (
-  eventId INT NOT NULL,
-  airDate TIMESTAMP NOT NULL,
-  auditoriumName VARCHAR(60) NOT NULL,
-  UNIQUE (eventId, airDate, auditoriumName)
-);
-
-CREATE TABLE tickets (
-  id INT NOT NULL AUTO_INCREMENT,
-  userId INT,
-  eventId INT NOT NULL,
-  airDate TIMESTAMP NOT NULL,
-  seatNum INT NOT NULL,
-  PRIMARY KEY (id)
+  id           INT       NOT NULL AUTO_INCREMENT,
+  eventId      INT       NOT NULL,
+  airDate      TIMESTAMP NOT NULL,
+  auditoriumId INT       NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY(eventId) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY(auditoriumId) REFERENCES auditoriums(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE users (
-  id INT NOT NULL AUTO_INCREMENT,
-  firstName VARCHAR(60) NOT NULL,
-  lastName VARCHAR(60) NOT NULL,
-  birthday DATE,
-  email VARCHAR(60),
-  password VARCHAR(60),
-  roles VARCHAR(512),
+  id        INT          NOT NULL AUTO_INCREMENT,
+  firstName VARCHAR(60)  NOT NULL,
+  lastName  VARCHAR(60)  NOT NULL,
+  birthday  DATE,
+  email     VARCHAR(60)  NOT NULL,
+  password  VARCHAR(60)  NOT NULL,
+  roles     VARCHAR(512) NOT NULL,
   PRIMARY KEY (id)
 );
 
 CREATE TABLE accounts (
-  userId INT NOT NULL,
+  id      INT              NOT NULL AUTO_INCREMENT,
+  userId  INT              NOT NULL,
   balance DOUBLE PRECISION NOT NULL,
-  PRIMARY KEY (userId)
+  PRIMARY KEY (id),
+  FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE tickets (
+  id           INT NOT NULL AUTO_INCREMENT,
+  userId       INT NOT NULL,
+  assignmentId INT NOT NULL,
+  seatNum      INT NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY(assignmentId) REFERENCES eventAssignments(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE eventStatistic (

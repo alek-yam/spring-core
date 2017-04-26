@@ -63,7 +63,7 @@ public class SpringRootConfig {
 			@Value("${blueRoom.name}") String name,
 			@Value("${blueRoom.numberOfSeats}") long numberOfSeats,
 			@Value("${blueRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(1, name, numberOfSeats, toSetOfLongs(vipSeats));
 	}
 
 	@Bean
@@ -71,7 +71,7 @@ public class SpringRootConfig {
 			@Value("${greenRoom.name}") String name,
 			@Value("${greenRoom.numberOfSeats}") long numberOfSeats,
 			@Value("${greenRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(2, name, numberOfSeats, toSetOfLongs(vipSeats));
 	}
 
 	@Bean
@@ -79,7 +79,7 @@ public class SpringRootConfig {
 			@Value("${redRoom.name}") String name,
 			@Value("${redRoom.numberOfSeats}") long numberOfSeats,
 			@Value("${redRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(3, name, numberOfSeats, toSetOfLongs(vipSeats));
 	}
 
 	@PostConstruct

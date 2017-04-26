@@ -23,6 +23,15 @@ public interface AuditoriumService {
     public @Nonnull Set<Auditorium> getAll();
 
     /**
+     * Finding auditorium by ID
+     *
+     * @param id
+     *            ID of the auditorium
+     * @return found auditorium or <code>null</code>
+     */
+    public @Nullable Auditorium getById(@Nonnull Long id);
+
+    /**
      * Finding auditorium by name
      *
      * @param name

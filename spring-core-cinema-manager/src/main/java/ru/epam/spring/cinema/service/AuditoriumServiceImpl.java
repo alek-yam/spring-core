@@ -37,6 +37,12 @@ public class AuditoriumServiceImpl implements AuditoriumService {
 
 	@Override
 	public @Nullable
+	Auditorium getById(@Nonnull Long id) {
+		return auditoriumRepository.getById(id);
+	}
+
+	@Override
+	public @Nullable
 	Auditorium getByName(@Nonnull String name) {
 		return auditoriumRepository.getByName(name);
 	}

@@ -1,22 +1,12 @@
 package ru.epam.spring.cinema.domain;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.junit.Test;
-
-import ru.epam.spring.cinema.domain.Auditorium;
-
 /**
  * The auditorium tests.
  *
  * @author Alex_Yamskov
  */
 public class TestAuditorium {
-
+/*
 	@Test
 	public void testCountVips() {
 		Set<Long> vipSeats = new HashSet<Long>();
@@ -42,5 +32,5 @@ public class TestAuditorium {
 
 	    assertEquals(10, a.getAllSeatNumbers().size());
 	}
-
+*/
 }

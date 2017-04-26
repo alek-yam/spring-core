@@ -1,34 +1,45 @@
 package ru.epam.spring.cinema.domain;
 
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * The auditorium definition.
  *
  * @author Alex_Yamskov
  */
-public class Auditorium {
-    private final String name;
-    private final Map<Long, Seat> seats;
+public class Auditorium extends DomainObject {
+    private String name;
+    private Map<Long, Seat> seats;
 
-    public Auditorium(String name, long numberOfSeats, Set<Long> vipSeats) {
+    public Auditorium() {}
+
+    public Auditorium(long id, String name, long numberOfSeats, Set<Long> vipSeats) {
+    	super(id);
     	this.name = name;
-    	this.seats = createSeats(numberOfSeats, vipSeats);
+    	this.seats = createSeats(id, numberOfSeats, vipSeats);
     }
 
     public String getName() {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public Map<Long, Seat> getSeats() {
         return seats;
     }
 
-    public long getNumberOfSeats() {
+    public void setSeats(Map<Long, Seat> seats) {
+        this.seats = seats;
+    }
+
+    public long getCapacity() {
         return seats.size();
     }
 
@@ -37,24 +48,13 @@ public class Auditorium {
     }
 
     public Set<Long> getVipSeatNumbers() {
-    	Set<Long> vipSeats = new TreeSet<Long>();
-
-    	for (Seat s : seats.values()) {
-    		if (s.isVip()) {
-    			vipSeats.add(s.getNumber());
-    		}
-    	}
-
-        return vipSeats;
+        return seats.values().stream()
+        		.filter(s-> s.isVip())
+        		.mapToLong(s-> s.getNumber())
+        		.boxed().collect(Collectors.toSet());
     }
 
-    /**
-     * Counts how many VIP seats are there in supplied <code>seats</code>
-     *
-     * @param seats
-     *            Seats to process
-     * @return number of VIP seats in request
-     */
+/*
     public long countVipSeats(Collection<Long> seatNumbers) {
     	long count = 0;
 
@@ -67,17 +67,7 @@ public class Auditorium {
 
     	return count;
     }
-
-    private static Map<Long, Seat> createSeats(long numberOfSeats, Set<Long> vipSeats) {
-    	Map<Long, Seat> seats = new TreeMap<Long, Seat>();
-
-    	for (long i = 0; i < numberOfSeats; i++) {
-    		long number = i + 1;
-    		seats.put(Long.valueOf(number), new Seat(number, vipSeats.contains(i)));
-    	}
-
-    	return seats;
-    }
+*/
 
 	@Override
     public int hashCode() {
@@ -102,5 +92,23 @@ public class Auditorium {
 	    } else if (!name.equals(other.name))
 		    return false;
 	    return true;
+    }
+
+	@Override
+	public String toString() {
+		return "Auditorium [id=" + getId()
+			+ ", name=" + name
+			+ ", seats=" + Arrays.toString(seats.values().toArray()) + "]";
+	}
+
+	public static Map<Long, Seat> createSeats(Long auditoriumId, long numberOfSeats, Set<Long> vipSeats) {
+    	Map<Long, Seat> seats = new TreeMap<Long, Seat>();
+
+    	for (long i = 0; i < numberOfSeats; i++) {
+    		Long number = Long.valueOf(i + 1);
+    		seats.put(number, new Seat(auditoriumId, number, vipSeats.contains(i)));
+    	}
+
+    	return seats;
     }
 }
