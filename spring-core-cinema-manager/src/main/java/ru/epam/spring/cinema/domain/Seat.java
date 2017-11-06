@@ -10,7 +10,7 @@ public class Seat implements Comparable<Seat> {
 	private final Long number;
 	private final Boolean vip;
 
-	public Seat(Long auditoriumId, Long number, Boolean vip) {
+	public Seat(long auditoriumId, long number, boolean vip) {
 		this.auditoriumId = auditoriumId;
 		this.number = number;
 		this.vip = vip;
@@ -48,7 +48,6 @@ public class Seat implements Comparable<Seat> {
 		int result = 1;
 		result = prime * result + ((auditoriumId == null) ? 0 : auditoriumId.hashCode());
 		result = prime * result + ((number == null) ? 0 : number.hashCode());
-		result = prime * result + ((vip == null) ? 0 : vip.hashCode());
 		return result;
 	}
 
@@ -71,11 +70,6 @@ public class Seat implements Comparable<Seat> {
 				return false;
 		} else if (!number.equals(other.number))
 			return false;
-		if (vip == null) {
-			if (other.vip != null)
-				return false;
-		} else if (!vip.equals(other.vip))
-			return false;
 		return true;
 	}
 
@@ -83,6 +77,5 @@ public class Seat implements Comparable<Seat> {
 	public String toString() {
 		return "Seat [auditoriumId=" + auditoriumId + ", number=" + number + ", vip=" + vip + "]";
 	}
-
 
 }

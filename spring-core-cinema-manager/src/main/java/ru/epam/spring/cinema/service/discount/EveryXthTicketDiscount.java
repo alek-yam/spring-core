@@ -1,13 +1,11 @@
 package ru.epam.spring.cinema.service.discount;
 
-import java.util.Calendar;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import ru.epam.spring.cinema.domain.DiscountReport;
-import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.User;
 
 /**
@@ -28,7 +26,7 @@ public class EveryXthTicketDiscount implements DiscountStrategy {
 	}
 
 	@Override
-    public DiscountReport getDiscount(User user, Event event, Calendar airDate, long numberOfTickets) {
+    public DiscountReport getDiscount(User user, EventAssignment assignment, long numberOfTickets) {
 		long accumulatedDiscount = 0;
 
 		for (int i = 1; i <= numberOfTickets; i++) {

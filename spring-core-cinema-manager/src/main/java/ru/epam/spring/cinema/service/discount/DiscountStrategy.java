@@ -1,12 +1,10 @@
 package ru.epam.spring.cinema.service.discount;
 
-import java.util.Calendar;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import ru.epam.spring.cinema.domain.DiscountReport;
-import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.User;
 
 /**
@@ -16,6 +14,6 @@ import ru.epam.spring.cinema.domain.User;
  */
 public interface DiscountStrategy {
 
-	DiscountReport getDiscount(@Nullable User user, @Nonnull Event event, @Nonnull Calendar airDate, long numberOfTickets);
+	DiscountReport getDiscount(@Nullable User user, @Nonnull EventAssignment assignment, long numberOfTickets);
 
 }

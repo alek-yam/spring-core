@@ -52,7 +52,7 @@ CREATE TABLE accounts (
 
 CREATE TABLE tickets (
   id           INT NOT NULL AUTO_INCREMENT,
-  userId       INT NOT NULL,
+  userId       INT,
   assignmentId INT NOT NULL,
   seatNum      INT NOT NULL,
   PRIMARY KEY (id),
@@ -61,11 +61,11 @@ CREATE TABLE tickets (
 );
 
 CREATE TABLE eventStatistic (
-  eventName VARCHAR(60) NOT NULL,
+  eventId INT NOT NULL,
   accessedByNameCount INT DEFAULT 0,
   priceWereQueriedCount INT DEFAULT 0,
   ticketsWereBookedCount INT DEFAULT 0,
-  PRIMARY KEY (eventName)
+  PRIMARY KEY (eventId)
 );
 
 CREATE TABLE discountStatistic (

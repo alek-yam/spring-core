@@ -79,8 +79,7 @@ public class JdbcAuditoriumRepository implements AuditoriumRepository {
 	@Override
     public Auditorium getByName(@Nonnull String name) {
 		Optional<Auditorium> auditorium = auditoriums.values().stream().filter(a-> a.getName().equals(name)).findFirst();
-		return auditorium.orElseThrow(()-> new RepositoryException("Auditorium with specified name ["
-				+ name + "] was not found"));
+		return auditorium.orElseThrow(()-> new RepositoryException("Auditorium with specified name [" + name + "] was not found"));
     }
 
 	private static final class InsertSeat extends BatchSqlUpdate {

@@ -1,10 +1,7 @@
 package ru.epam.spring.cinema.domain;
 
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.TreeSet;
 
 /**
  * The event definition.
@@ -15,7 +12,7 @@ public class Event extends DomainObject {
     private String name;
     private EventRating rating;
     private double basePrice;
-    private Set<EventAssignment> assignments = new HashSet<EventAssignment>();
+    private Set<EventAssignment> assignments = new TreeSet<EventAssignment>();
 
     public String getName() {
         return name;
@@ -49,13 +46,14 @@ public class Event extends DomainObject {
 		this.assignments = assignments;
 	}
 
-	public Set<LocalDateTime> getAirDates() {
-		return assignments.stream().map(a -> a.getAirDate()).sorted().collect(Collectors.toSet());
-	}
+//	public Set<LocalDateTime> getAirDates() {
+//		return assignments.stream().map(a -> a.getAirDate()).sorted().collect(Collectors.toSet());
+//	}
+//
+//	public Map<LocalDateTime, Long> getAuditoriums() {
+//		return assignments.stream().collect(Collectors.toMap(a -> a.getAirDate(), a -> a.getAuditoriumId()));
+//	}
 
-	public Map<LocalDateTime, Long> getAuditoriums() {
-		return assignments.stream().collect(Collectors.toMap(a -> a.getAirDate(), a -> a.getAuditoriumId()));
-	}
 
 //    /**
 //     * Checks if event is aired on particular <code>dateTime</code> and assigns

@@ -56,9 +56,7 @@ public class AuditoriumManageState extends AbstractState {
     protected void printDefaultInformation() {
         System.out.println("All auditoriums:");
         Set<Auditorium> all = auditoriumService.getAll();
-        for (Auditorium a : all) {
-        	printAuditorium(a);
-        }
+        all.forEach(a -> printAuditorium(a));
     }
 
     private void printAuditorium(Auditorium a) {

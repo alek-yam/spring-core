@@ -1,6 +1,6 @@
 package ru.epam.spring.cinema.domain;
 
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -23,7 +23,7 @@ public class User extends DomainObject {
     private String lastName;
 
 	@DateTimeFormat(pattern="yyyy-MM-dd")
-    private Calendar birthday;
+    private LocalDate birthday;
 
     @NotNull
     private String email;
@@ -32,10 +32,10 @@ public class User extends DomainObject {
     private String password;
 
     @NotNull
-    private Set<Long> ticketIds = new TreeSet<>();
+    private Set<String> roles = new HashSet<String>();
 
     @NotNull
-    private Set<String> roles = new HashSet<>();
+    private Set<Long> ticketIds = new TreeSet<Long>();
 
     public String getFirstName() {
         return firstName;
@@ -53,11 +53,11 @@ public class User extends DomainObject {
         this.lastName = lastName;
     }
 
-	public Calendar getBirthday() {
+	public LocalDate getBirthday() {
 	    return birthday;
     }
 
-	public void setBirthday(Calendar birthday) {
+	public void setBirthday(LocalDate birthday) {
 	    this.birthday = birthday;
     }
 
@@ -77,14 +77,6 @@ public class User extends DomainObject {
 		this.password = password;
 	}
 
-    public Set<Long> getTickets() {
-        return ticketIds;
-    }
-
-    public void setTickets(Set<Long> ticketIds) {
-        this.ticketIds = ticketIds;
-    }
-
 	public Set<String> getRoles() {
 		return roles;
 	}
@@ -93,7 +85,22 @@ public class User extends DomainObject {
 		this.roles = roles;
 	}
 
+    public Set<Long> getTickets() {
+        return ticketIds;
+    }
+
+    public void setTickets(Set<Long> ticketIds) {
+        this.ticketIds = ticketIds;
+    }
+
     public String getFullName() {
     	return this.firstName + " " + this.lastName;
     }
+
+	@Override
+	public String toString() {
+		return "User [firstName=" + firstName + ", lastName=" + lastName + ", birthday=" + birthday + ", email=" + email
+				+ ", roles=" + roles + "]";
+	}
+
 }

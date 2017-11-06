@@ -1,16 +1,9 @@
 package ru.epam.spring.cinema.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import javax.annotation.Nonnull;
@@ -27,11 +20,10 @@ import ru.epam.spring.cinema.domain.DiscountReport;
 import ru.epam.spring.cinema.domain.Event;
 import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
-import ru.epam.spring.cinema.domain.PriceItem;
 import ru.epam.spring.cinema.domain.PriceReport;
 import ru.epam.spring.cinema.domain.Ticket;
+import ru.epam.spring.cinema.domain.TicketPrice;
 import ru.epam.spring.cinema.domain.User;
-import ru.epam.spring.cinema.repository.BookingRepository;
 import ru.epam.spring.cinema.repository.EventRepository;
 import ru.epam.spring.cinema.repository.TicketRepository;
 import ru.epam.spring.cinema.repository.filter.TicketFilter;
@@ -50,17 +42,10 @@ public class BookingServiceImpl implements BookingService {
 	private static final double LOW_RATING_FACTOR = 0.9;
 
 	private EventRepository eventRepository;
-	private BookingRepository bookingRepository;
 	private TicketRepository ticketRepository;
 	private AuditoriumService auditoriumService;
 	private DiscountService discountService;
-	private UserService userService;
 	private AccountService accountService;
-
-	@Autowired
-	public void setBookingRepository(BookingRepository bookingRepository) {
-		this.bookingRepository = bookingRepository;
-	}
 
 	@Autowired
 	@Qualifier("jdbcEventRepository")
@@ -85,22 +70,17 @@ public class BookingServiceImpl implements BookingService {
 	}
 
 	@Autowired
-	public void setUserService(UserService userService) {
-		this.userService = userService;
-	}
-
-	@Autowired
 	public void setAccountService(AccountService accountService) {
 		this.accountService = accountService;
 	}
 
 	@Override
-	public List<PriceItem> getPriceList() {
+	public List<TicketPrice> getPriceList() {
 		Collection<Event> events = eventRepository.getAll();
-		List<PriceItem> priceList = new ArrayList<PriceItem>(events.size());
+		List<TicketPrice> priceList = new ArrayList<TicketPrice>(events.size());
 
 		for (Event event : events) {
-			PriceItem item = new PriceItem();
+			TicketPrice item = new TicketPrice();
 			item.setEventName(event.getName());
 			item.setPrice(getTicketPrice(event, false));
 			item.setVipPrice(getTicketPrice(event, true));
@@ -111,19 +91,19 @@ public class BookingServiceImpl implements BookingService {
 	}
 
 	@Override
-	public PriceReport getFinalPrice(@Nonnull Event event, @Nonnull Calendar date, @Nullable User user, @Nonnull Set<Long> seats) {
-		EventAssignment assignment = getAssignment(event, date);
+	public PriceReport getFinalPrice(@Nonnull EventAssignment assignment, @Nullable User user, @Nonnull Set<Long> seats) {
 		Long audId = assignment.getAuditoriumId();
 		Auditorium auditorium = auditoriumService.getById(audId);
 		double totalPrice = 0;
 
+		Event event = eventRepository.getById(assignment.getEventId());
 		for (Long sn : seats) {
 			boolean isVip = auditorium.getSeats().get(sn).isVip();
 			double ticketPrice = getTicketPrice(event, isVip);
 			totalPrice += ticketPrice;
 		}
 
-		DiscountReport discountReport =  discountService.getDiscount(user, event, date, seats.size());
+		DiscountReport discountReport =  discountService.getDiscount(user, assignment, seats.size());
 		double discount = totalPrice * discountReport.getPercent() / 100;
 		double finalPrice = totalPrice - discount;
 
@@ -132,29 +112,16 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	@Transactional
-	public BookingReport bookTickets(@Nonnull Event event, @Nonnull Calendar date, @Nullable User user, @Nonnull Set<Long> seats) {
-		BookingReport booking = new BookingReport();
-		booking.setDate(Calendar.getInstance());
+	public BookingReport bookTickets(@Nonnull EventAssignment assignment, @Nullable User user, @Nonnull Set<Long> seats) {
+		PriceReport priceReport = getFinalPrice(assignment, user, seats);
 
-		PriceReport priceReport = getFinalPrice(event, date, user, seats);
-		booking.setPriceReport(priceReport);
-
-        Map<Long, Ticket> tickets = new TreeMap<>();
+        List<Ticket> tickets = new ArrayList<>();
         for (Long seat : seats) {
-			Ticket bookedTicket = ticketRepository.save(new Ticket(user.getId(), event.getId(), date, seat));
-			tickets.put(bookedTicket.getId(), bookedTicket);
+			Ticket bookedTicket = ticketRepository.save(new Ticket(user.getId(), assignment.getId(), seat));
+			tickets.add(bookedTicket);
         }
 
-        booking.setTickets(new TreeSet<>(tickets.values()));
-
-        if (user != null && user.getId() != null
-        		&& userService.getById(user.getId()) != null) {
-        	user.getTickets().addAll(tickets.keySet());
-        	userService.save(user);
-    		booking.setUser(user);
-        }
-
-        BookingReport bookingReport = bookingRepository.save(booking);
+        BookingReport bookingReport = new BookingReport(user, tickets, priceReport);
         accountService.withdrawMoney(user, priceReport.getFinalPrice());
 
 		return bookingReport;
@@ -162,10 +129,9 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	public @Nonnull
-	Set<Ticket> getPurchasedTicketsForEvent(@Nonnull Event event, @Nonnull Calendar date) {
+	Set<Ticket> getPurchasedTicketsForEvent(EventAssignment assignment) {
 		TicketFilter filter = new TicketFilter();
-		filter.setEvent(event);
-		filter.setDate(date);
+		filter.setAssignmentId(assignment.getId());
 		Collection<Ticket> foundTickets = ticketRepository.getByFilter(filter);
 		return new TreeSet<Ticket>(foundTickets);
 	}
@@ -173,7 +139,7 @@ public class BookingServiceImpl implements BookingService {
 	@Override
 	public Set<Ticket> getPurchasedTicketsForUser(User user) {
 		TicketFilter filter = new TicketFilter();
-		filter.setUser(user);
+		filter.setUserId(user.getId());
 		Collection<Ticket> foundTickets = ticketRepository.getByFilter(filter);
 		return new TreeSet<Ticket>(foundTickets);
 	}
@@ -201,15 +167,4 @@ public class BookingServiceImpl implements BookingService {
 
 		return ticketPrice;
 	}
-
-	private EventAssignment getAssignment(Event event, Calendar date) {
-		Date in = date.getTime();
-		ZoneId zone = ZoneId.systemDefault();
-		LocalDateTime localDate = LocalDateTime.ofInstant(in.toInstant(), zone);
-		Optional<EventAssignment> assignment = event.getAssignments().stream()
-				.filter(a-> a.getAirDate().equals(localDate)).findFirst();
-		return assignment.orElseThrow(()-> new RuntimeException("Event assignment with air date ["
-				+ localDate + "] was not found."));
-	}
-
 }

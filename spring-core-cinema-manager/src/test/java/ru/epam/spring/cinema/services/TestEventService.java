@@ -5,10 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +16,7 @@ import org.mockito.Mockito;
 
 import ru.epam.spring.cinema.domain.Auditorium;
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
 import ru.epam.spring.cinema.repository.EventRepository;
 import ru.epam.spring.cinema.service.EventService;
@@ -29,7 +29,7 @@ public class TestEventService {
 
 	private Auditorium blueRoom;
 	private Auditorium greenRoom;
-	private Auditorium redRoom;
+	//private Auditorium redRoom;
 
 	@Before
 	public void init() {
@@ -39,9 +39,9 @@ public class TestEventService {
 		eventServiceImpl.setAuditoriumRepository(eventRepositoryMock);
 		eventService = eventServiceImpl;
 
-		blueRoom = new Auditorium("Blue room", 20, getSet(1L, 2L, 3L));
-		greenRoom = new Auditorium("Green room", 40, getSet(1L, 2L, 3L, 4L, 5L));
-		redRoom = new Auditorium("Red room", 10, getSet(1L));
+		blueRoom = new Auditorium(1, "Blue room", 20, Stream.of(1L, 2L, 3L).collect(Collectors.toSet()));
+		greenRoom = new Auditorium(2, "Green room", 40, Stream.of(1L, 2L, 3L, 4L, 5L).collect(Collectors.toSet()));
+		//redRoom = new Auditorium(3, "Red room", 10, Stream.of(1L).collect(Collectors.toSet()));
 	}
 
 	@Test
@@ -51,17 +51,25 @@ public class TestEventService {
 		event.setRating(EventRating.MID);
 		event.setBasePrice(10);
 
-        Calendar airDate1 = new GregorianCalendar(2016, 6, 10, 19, 30);
-        event.addAirDateTime(airDate1, blueRoom);
+		EventAssignment assignment1 = new EventAssignment();
+		assignment1.setAuditoriumId(blueRoom.getId());
+		assignment1.setAirDate(LocalDateTime.of(2017, 7, 10, 19, 30));
+		event.getAssignments().add(assignment1);
 
-        Calendar airDate21 = new GregorianCalendar(2016, 6, 11, 19, 30);
-        event.addAirDateTime(airDate21, blueRoom);
+		EventAssignment assignment21 = new EventAssignment();
+		assignment21.setAuditoriumId(blueRoom.getId());
+		assignment21.setAirDate(LocalDateTime.of(2017, 7, 11, 19, 30));
+		event.getAssignments().add(assignment21);
 
-        Calendar airDate22 = new GregorianCalendar(2016, 6, 11, 21, 30);
-        event.addAirDateTime(airDate22, blueRoom);
+		EventAssignment assignment22 = new EventAssignment();
+		assignment22.setAuditoriumId(blueRoom.getId());
+		assignment22.setAirDate(LocalDateTime.of(2017, 7, 11, 21, 30));
+		event.getAssignments().add(assignment22);
 
-        Calendar airDate23 = new GregorianCalendar(2016, 6, 11, 21, 45);
-        event.addAirDateTime(airDate23, greenRoom);
+		EventAssignment assignment23 = new EventAssignment();
+		assignment23.setAuditoriumId(greenRoom.getId());
+		assignment23.setAirDate(LocalDateTime.of(2017, 7, 11, 21, 30));
+		event.getAssignments().add(assignment23);
 
         Event fakeEvent = new Event();
         fakeEvent.setId(123L);
@@ -78,55 +86,29 @@ public class TestEventService {
 		assertNotNull(eventArgument.getValue());
 		assertEquals("Matrix", eventArgument.getValue().getName());
 		assertEquals(EventRating.MID, eventArgument.getValue().getRating());
-		assertTrue(eventArgument.getValue().getBasePrice() == 10);
-		assertTrue(eventArgument.getValue().getAirDates().contains(airDate1));
-		assertTrue(eventArgument.getValue().getAirDates().contains(airDate21));
-		assertTrue(eventArgument.getValue().getAirDates().contains(airDate22));
-		assertTrue(eventArgument.getValue().getAirDates().contains(airDate23));
-		assertTrue(eventArgument.getValue().getAuditoriums().get(airDate1).equals(blueRoom.getName()));
-		assertTrue(eventArgument.getValue().getAuditoriums().get(airDate21).equals(blueRoom.getName()));
-		assertTrue(eventArgument.getValue().getAuditoriums().get(airDate22).equals(blueRoom.getName()));
-		assertTrue(eventArgument.getValue().getAuditoriums().get(airDate23).equals(greenRoom.getName()));
+		assertEquals(10, eventArgument.getValue().getBasePrice(), 0.000001);
+		assertTrue(eventArgument.getValue().getAssignments().contains(assignment1));
+		assertTrue(eventArgument.getValue().getAssignments().contains(assignment21));
+		assertTrue(eventArgument.getValue().getAssignments().contains(assignment22));
+		assertTrue(eventArgument.getValue().getAssignments().contains(assignment23));
 	}
 
 	@Test
-	public void forEachDateTimeEventWillBePresentedOnlyInSingleAuditorium() {
+	public void eventCannotBePresentedOnTheSameDateAndTimeInTheSameAuditoriumTwice() {
 		Event event = new Event();
 		event.setName("Matrix");
 		event.setRating(EventRating.MID);
 		event.setBasePrice(10);
 
-        Calendar airDate1 = new GregorianCalendar(2016, 6, 10, 19, 30);
-        event.addAirDateTime(airDate1, blueRoom);
+		EventAssignment assignment1 = new EventAssignment();
+		assignment1.setAuditoriumId(blueRoom.getId());
+		assignment1.setAirDate(LocalDateTime.of(2017, 7, 10, 19, 30));
 
-        Calendar airDate2 = new GregorianCalendar(2016, 6, 10, 19, 30);	// similar to airDate1
-        event.addAirDateTime(airDate2, redRoom);
+		EventAssignment assignment2 = new EventAssignment();
+		assignment2.setAuditoriumId(blueRoom.getId());
+		assignment2.setAirDate(LocalDateTime.of(2017, 7, 10, 19, 30));
 
-        Event fakeEvent = new Event();
-        fakeEvent.setId(123L);
-
-        Mockito.when(eventRepositoryMock.save(Mockito.any(Event.class))).thenReturn(fakeEvent);
-
-        Event resultEvent = eventService.save(event);
-		assertNotNull(resultEvent);
-
-		ArgumentCaptor<Event> eventArgument = ArgumentCaptor.forClass(Event.class);
-		Mockito.verify(eventRepositoryMock).save(eventArgument.capture());
-		assertNotNull(eventArgument.getValue());
-		assertTrue(eventArgument.getValue().getAirDates().contains(airDate1));
-		assertTrue(eventArgument.getValue().getAirDates().contains(airDate2));
-		assertTrue(eventArgument.getValue().getAuditoriums().get(airDate1).equals(blueRoom.getName()));
-		assertFalse(eventArgument.getValue().getAuditoriums().get(airDate2).equals(redRoom.getName()));
-		assertTrue(eventArgument.getValue().getAuditoriums().get(airDate2).equals(blueRoom.getName()));
-	}
-
-	private Set<Long> getSet(Long... args) {
-		Set<Long> vipSeats = new HashSet<Long>();
-
-		for (Long e : args) {
-			vipSeats.add(e);
-		}
-
-		return vipSeats;
+		assertTrue(event.getAssignments().add(assignment1));
+		assertFalse(event.getAssignments().add(assignment2));
 	}
 }

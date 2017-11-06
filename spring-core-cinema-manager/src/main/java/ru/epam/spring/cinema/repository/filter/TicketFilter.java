@@ -1,10 +1,5 @@
 package ru.epam.spring.cinema.repository.filter;
 
-import java.util.Calendar;
-
-import ru.epam.spring.cinema.domain.Event;
-import ru.epam.spring.cinema.domain.User;
-
 /**
  * Filter to perform searching for users with specific parameters.
  *
@@ -12,32 +7,23 @@ import ru.epam.spring.cinema.domain.User;
  */
 public class TicketFilter {
 
-	private Event event;
-	private Calendar date;
-	private User user;
+	private Long userId;
+	private Long assignmentId;
 
-	public Event getEvent() {
-	    return event;
+	public Long getUserId() {
+	    return userId;
     }
 
-	public void setEvent(Event event) {
-	    this.event = event;
+	public void setUserId(Long userId) {
+	    this.userId = userId;
     }
 
-	public Calendar getDate() {
-	    return date;
-    }
+	public Long getAssignmentId() {
+		return assignmentId;
+	}
 
-	public void setDate(Calendar date) {
-	    this.date = date;
-    }
-
-	public User getUser() {
-	    return user;
-    }
-
-	public void setUser(User user) {
-	    this.user = user;
-    }
+	public void setAssignmentId(Long assignmentId) {
+		this.assignmentId = assignmentId;
+	}
 
 }

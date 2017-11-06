@@ -5,11 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.Collection;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -53,27 +53,26 @@ public class TestJdbcUserRepository {
     	assertEquals(4, user.getId().longValue());
     	assertEquals("Mary", user.getFirstName());
     	assertEquals("Wilams", user.getLastName());
-    	Calendar birthday = new GregorianCalendar(1979, 9, 1);
-    	assertEquals(birthday, user.getBirthday());
+    	assertEquals(LocalDate.of(1979, 10, 1), user.getBirthday());
     	assertEquals("mary@gmail.com", user.getEmail());
-    	assertEquals("mary123", user.getPassword());
+    	assertEquals("$2a$10$/lTwOdR6QJAwbYjNEaDBz.KvnNbSYQajAiW2KF3NYXntizJBSq7/a", user.getPassword());
 
-//    	assertNotNull(user.getTickets());
-//    	assertEquals(2, user.getTickets().size());
-//    	Long[] ticketIds = user.getTickets().toArray(new Long[2]);
-//    	assertEquals(1L, ticketIds[0].longValue());
-//    	assertEquals(2L, ticketIds[1].longValue());
-
+    	// roles
     	assertNotNull(user.getRoles());
     	assertEquals(2, user.getRoles().size());
     	assertTrue(user.getRoles().contains("BOOKING_MANAGER"));
     	assertTrue(user.getRoles().contains("REGISTERED_USER"));
+
+    	// tickets
+    	assertNotNull(user.getTickets());
+    	assertEquals(2, user.getTickets().size());
+    	assertTrue(user.getTickets().contains(3L));
+    	assertTrue(user.getTickets().contains(4L));
     }
 
     @Test
     public void testGetByIdReturnsNullIfNotFound() {
     	User user = userRepository.getById(999999L);
-
     	assertNull(user);
     }
 
@@ -84,17 +83,23 @@ public class TestJdbcUserRepository {
     	assertNotNull(users);
     	assertEquals(4, users.size());
 
-    	List<User> usersList = new ArrayList<User>(users);
-    	User user = usersList.get(1);
-    	assertEquals(2, user.getId().longValue());
-    	assertEquals("Ken", user.getFirstName());
-    	assertEquals("Bolein", user.getLastName());
-    	Calendar birthday = new GregorianCalendar(1987, 5, 21);
-    	assertEquals(birthday, user.getBirthday());
-    	assertEquals("ken@gmail.com", user.getEmail());
-    	assertEquals("ken123", user.getPassword());
-    	assertNotNull(user.getTickets());
-    	assertTrue(user.getTickets().isEmpty());
+    	Optional<User> john = users.stream().filter(u -> "ken@gmail.com".equals(u.getEmail())).findFirst();
+    	assertTrue(john.isPresent());
+    	assertNotNull(john.get().getId());
+    	assertEquals("Ken", john.get().getFirstName());
+    	assertEquals("Bolein", john.get().getLastName());
+    	assertEquals(LocalDate.of(1987, 6, 21), john.get().getBirthday());
+    	assertEquals("ken@gmail.com", john.get().getEmail());
+    	assertEquals("$2a$10$5W.YP1pCyd.f2B2vnZA.f.jiIr7zx/sG2hnG5kBcRuKD5q2OSIZoy", john.get().getPassword());
+
+    	// roles
+    	assertNotNull(john.get().getRoles());
+    	assertEquals(1, john.get().getRoles().size());
+    	assertTrue(john.get().getRoles().contains("REGISTERED_USER"));
+
+    	// tickets
+    	assertNotNull(john.get().getTickets());
+    	assertTrue(john.get().getTickets().isEmpty());
     }
 
     @Test
@@ -102,15 +107,19 @@ public class TestJdbcUserRepository {
     	User user = new User();
     	user.setFirstName("Den");
     	user.setLastName("Braun");
-    	Calendar birthday = new GregorianCalendar(1977, 3, 10);
-    	user.setBirthday(birthday);
+    	user.setBirthday(LocalDate.of(1977, 4, 10));
     	user.setEmail("den@mail.com");
     	user.setPassword("den123");
+    	user.setRoles(Stream.of("BOOKING_MANAGER", "REGISTERED_USER").collect(Collectors.toSet()));
 
     	int oldSize = userRepository.getAll().size();
     	User addedUser = userRepository.save(user);
     	int newSize = userRepository.getAll().size();
 
+    	// size
+    	assertEquals(oldSize + 1, newSize);
+
+    	// user
     	assertNotNull(addedUser);
     	assertNotNull(addedUser.getId());
     	assertEquals(user.getFirstName(), addedUser.getFirstName());
@@ -118,25 +127,35 @@ public class TestJdbcUserRepository {
     	assertEquals(user.getBirthday(), addedUser.getBirthday());
     	assertEquals(user.getEmail(), addedUser.getEmail());
     	assertEquals(user.getPassword(), addedUser.getPassword());
+
+    	// roles
+    	assertNotNull(addedUser.getRoles());
+    	assertEquals(2, addedUser.getRoles().size());
+    	assertTrue(addedUser.getRoles().contains("BOOKING_MANAGER"));
+    	assertTrue(addedUser.getRoles().contains("REGISTERED_USER"));
+
+    	// DB record
     	assertNotNull(userRepository.getById(addedUser.getId()));
-    	assertEquals(oldSize + 1, newSize);
     }
 
     @Test
     public void testUpdateUser() {
-    	User user = new User();
-    	user.setId(2L);
-    	user.setFirstName("Ken");
-    	user.setLastName("Bolein");
-    	Calendar newBirthday = new GregorianCalendar(1977, 3, 10);
-    	user.setBirthday(newBirthday);
-    	user.setEmail("new_den@ebox.com");
-    	user.setPassword("qwe123");
+    	User user = userRepository.getById(2L);
+    	user.setFirstName("Lakshmi");
+    	user.setLastName("Kant");
+    	user.setBirthday(LocalDate.of(2000, 1, 1));
+    	user.setEmail("kant@info.com");
+    	user.setPassword("kant123");
+    	user.setRoles(Stream.of("BOOKING_MANAGER", "REGISTERED_USER").collect(Collectors.toSet()));
 
     	int oldSize = userRepository.getAll().size();
     	User updatedUser = userRepository.save(user);
     	int newSize = userRepository.getAll().size();
 
+    	// size
+    	assertEquals(oldSize, newSize);
+
+    	// user
     	assertNotNull(updatedUser);
     	assertEquals(user.getId(), updatedUser.getId());
     	assertEquals(user.getFirstName(), updatedUser.getFirstName());
@@ -144,19 +163,24 @@ public class TestJdbcUserRepository {
     	assertEquals(user.getBirthday(), updatedUser.getBirthday());
     	assertEquals(user.getEmail(), updatedUser.getEmail());
     	assertEquals(user.getPassword(), updatedUser.getPassword());
-    	assertEquals(oldSize, newSize);
+
+    	// roles
+    	assertNotNull(user.getRoles());
+    	assertEquals(2, user.getRoles().size());
+    	assertTrue(user.getRoles().contains("BOOKING_MANAGER"));
+    	assertTrue(user.getRoles().contains("REGISTERED_USER"));
     }
 
     @Test(expected=Exception.class)
     public void testUpdateUserThrowsExeptionIfUserNotFound() {
     	User user = new User();
-    	user.setId(999999L);
-    	user.setFirstName("Ken");
-    	user.setLastName("Bolein");
-    	Calendar birthday = new GregorianCalendar(1977, 3, 10);
-    	user.setBirthday(birthday);
-    	user.setEmail("new_den@ebox.com");
-    	user.setPassword("qwe123");
+    	user.setId(999999L);	// nonexistent user
+    	user.setFirstName("Lakshmi");
+    	user.setLastName("Kant");
+    	user.setBirthday(LocalDate.of(2000, 1, 1));
+    	user.setEmail("kant@info.com");
+    	user.setPassword("kant123");
+    	user.setRoles(Stream.of("BOOKING_MANAGER", "REGISTERED_USER").collect(Collectors.toSet()));
 
     	userRepository.save(user);
     }
@@ -172,7 +196,7 @@ public class TestJdbcUserRepository {
 
     @Test(expected=Exception.class)
     public void testRemoveByIdThrowsExeptionIfNotFound() {
-    	Long id = 999999L;
+    	Long id = 999999L;	// nonexistent user
 
     	assertNull(userRepository.getById(id));
     	userRepository.removeById(id);
@@ -185,11 +209,12 @@ public class TestJdbcUserRepository {
 
     	Collection<User> users = userRepository.getByFilter(filter);
 
+    	// uniqueness
     	assertNotNull(users);
     	assertEquals(1, users.size());
 
-    	List<User> usersList = new ArrayList<User>(users);
-    	User user = usersList.get(0);
+    	// user id
+    	User user = users.iterator().next();
     	assertEquals(2, user.getId().longValue());
     }
 

@@ -5,7 +5,7 @@ package ru.epam.spring.cinema.domain;
  *
  * @author Alex_Yamskov
  */
-public class PriceItem {
+public class TicketPrice {
 	private String eventName;
 	private double price;
 	private double vipPrice;

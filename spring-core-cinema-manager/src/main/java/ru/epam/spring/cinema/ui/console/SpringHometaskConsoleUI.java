@@ -1,11 +1,8 @@
 package ru.epam.spring.cinema.ui.console;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
 
 import org.springframework.context.ApplicationContext;
 
@@ -16,6 +13,7 @@ import ru.epam.spring.cinema.domain.Event;
 import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
 import ru.epam.spring.cinema.domain.User;
+import ru.epam.spring.cinema.service.AccountService;
 import ru.epam.spring.cinema.service.AuditoriumService;
 import ru.epam.spring.cinema.service.BookingService;
 import ru.epam.spring.cinema.service.EventService;
@@ -55,6 +53,7 @@ public class SpringHometaskConsoleUI {
 
     private void fillInitialData() {
         UserService userService = context.getBean(UserService.class);
+        AccountService accountService = context.getBean(AccountService.class);
         EventService eventService = context.getBean(EventService.class);
         AuditoriumService auditoriumService = context.getBean(AuditoriumService.class);
         BookingService bookingService = context.getBean(BookingService.class);
@@ -68,17 +67,18 @@ public class SpringHometaskConsoleUI {
         }
 
         User user = new User();
-        user.setFirstName("Foo");
-        user.setLastName("Bar");
-        user.setBirthday(new GregorianCalendar(2001, 9, 21));
+        user.setFirstName("Vladimir");
+        user.setLastName("Kovalev");
+        user.setBirthday(LocalDate.of(1981, 4, 20));
         user.setEmail("my@email.com");
-
+        user.setPassword("vlad123");
         user = userService.save(user);
+        accountService.putMoney(user, 1000);
 
         Event event = new Event();
         event.setName("Grand concert");
         event.setRating(EventRating.MID);
-        event.setBasePrice(10);
+        event.setBasePrice(500);
 
         EventAssignment assignment = new EventAssignment();
         assignment.setAuditoriumId(auditorium.getId());
@@ -87,19 +87,15 @@ public class SpringHometaskConsoleUI {
         event.getAssignments().add(assignment);
         event = eventService.save(event);
 
-        Date convertedDate = Date.from(airDate.atZone(ZoneId.systemDefault()).toInstant());
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(convertedDate);
-        bookingService.bookTickets(event, calendar, user, Collections.singleton(1L));
+        bookingService.bookTickets(assignment, user, Collections.singleton(1L));
 
-        if (auditorium.getCapacity() > 1) {
-            User userNotRegistered = new User();
-            userNotRegistered.setEmail("somebody@a.b");
-            userNotRegistered.setFirstName("A");
-            userNotRegistered.setLastName("Somebody");
-
-            bookingService.bookTickets(event, calendar, userNotRegistered, Collections.singleton(2L));
-        }
+//        if (auditorium.getCapacity() > 1) {
+//            User userNotRegistered = new User();
+//            userNotRegistered.setFirstName("A");
+//            userNotRegistered.setLastName("Somebody");
+//            userNotRegistered.setEmail("somebody@a.b");
+//            bookingService.bookTickets(assignment, userNotRegistered, Collections.singleton(2L));
+//        }
     }
 
     private void printStatistics() {

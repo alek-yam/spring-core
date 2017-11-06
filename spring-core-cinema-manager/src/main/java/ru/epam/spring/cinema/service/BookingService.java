@@ -1,6 +1,5 @@
 package ru.epam.spring.cinema.service;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
 
@@ -8,10 +7,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import ru.epam.spring.cinema.domain.BookingReport;
-import ru.epam.spring.cinema.domain.Event;
-import ru.epam.spring.cinema.domain.PriceItem;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.PriceReport;
 import ru.epam.spring.cinema.domain.Ticket;
+import ru.epam.spring.cinema.domain.TicketPrice;
 import ru.epam.spring.cinema.domain.User;
 
 
@@ -27,16 +26,14 @@ public interface BookingService {
      *
      * @return price list
      */
-    public List<PriceItem> getPriceList();
+    public List<TicketPrice> getPriceList();
 
     /**
      * Getting price when buying all supplied seats for particular event including available discount
      *
-     * @param event
-     *            Event to get base ticket price, vip seats and other
+     * @param assignment
+     *            Event assignment to get base ticket price, vip seats and other
      *            information
-     * @param date
-     *            Date and time of event air
      * @param user
      *            User that buys ticket could be needed to calculate discount.
      *            Can be <code>null</code>
@@ -44,18 +41,15 @@ public interface BookingService {
      *            Set of seat numbers that user wants to buy
      * @return price report
      */
-    public PriceReport getFinalPrice(@Nonnull Event event, @Nonnull Calendar date, @Nullable User user,
-            @Nonnull Set<Long> seats);
+    public PriceReport getFinalPrice(@Nonnull EventAssignment assignment, @Nullable User user, @Nonnull Set<Long> seats);
 
     /**
      * Books tickets in internal system. If user is not
      * <code>null</code> in a ticket then booked tickets are saved with it
      *
-     * @param event
-     *            Event to get base ticket price, vip seats and other
+     * @param assignment
+     *            Event assignment to get base ticket price, vip seats and other
      *            information
-     * @param date
-     *            Date and time of event air
      * @param user
      *            User that buys ticket could be needed to calculate discount.
      *            Can be <code>null</code>
@@ -63,18 +57,18 @@ public interface BookingService {
      *            Set of seat numbers that user wants to buy
      * @return booking
      */
-    public BookingReport bookTickets(@Nonnull Event event, @Nonnull Calendar date, @Nullable User user, @Nonnull Set<Long> seats);
+    public BookingReport bookTickets(@Nonnull EventAssignment assignment, @Nullable User user, @Nonnull Set<Long> seats);
 
     /**
-     * Getting all purchased tickets for event on specific air date and time
+     * Getting all purchased tickets for specific event assignment
      *
-     * @param event
-     *            Event to get tickets for
+     * @param assignment
+     *            Event assignment to get tickets for
      * @param date
      *            Date and time of airing of event
      * @return set of all purchased tickets
      */
-    public @Nonnull Set<Ticket> getPurchasedTicketsForEvent(@Nonnull Event event, @Nonnull Calendar date);
+    public @Nonnull Set<Ticket> getPurchasedTicketsForEvent(@Nonnull EventAssignment assignment);
 
     /**
      * Getting all purchased tickets for particular user

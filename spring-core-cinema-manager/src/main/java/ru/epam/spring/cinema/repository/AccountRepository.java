@@ -17,7 +17,7 @@ public interface AccountRepository {
 
     public @Nonnull Collection<UserAccount> getAll();
 
-    public void save(@Nonnull UserAccount userAccount);
+    public UserAccount save(@Nonnull UserAccount userAccount);
 
     public void removeByUserId(@Nonnull Long userId);
 

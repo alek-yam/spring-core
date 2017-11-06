@@ -2,20 +2,18 @@ package ru.epam.spring.cinema.services;
 
 import static org.junit.Assert.assertEquals;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import ru.epam.spring.cinema.domain.Auditorium;
 import ru.epam.spring.cinema.domain.DiscountReport;
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.EventRating;
 import ru.epam.spring.cinema.domain.User;
 import ru.epam.spring.cinema.service.DiscountService;
@@ -45,45 +43,34 @@ public class TestDiscountService {
         User user = new User();
         user.setFirstName("Foo");
         user.setLastName("Bar");
-        Calendar birthday = new GregorianCalendar(2001, 9, 21);
-        user.setBirthday(birthday);
+        user.setBirthday(LocalDate.of(2001, 10, 21));
         user.setEmail("my@email.com");
 
         Event event = new Event();
         event.setName("Grand concert");
         event.setRating(EventRating.MID);
         event.setBasePrice(10);
-        Calendar airDate = new GregorianCalendar(2020, 6, 15, 19, 30);
-        Auditorium auditorium = new Auditorium("Blue room", 20, getSet(1L, 2L, 3L));
-        event.addAirDateTime(airDate, auditorium);
+
+        EventAssignment assignment = new EventAssignment();
+        assignment.setAuditoriumId(1L);
+        assignment.setAirDate(LocalDateTime.of(2020, 7, 15, 19, 30));
+        event.getAssignments().add(assignment);
 
         DiscountReport fakeDiscount1 = new DiscountReport("strategy1", (byte) 5);
         DiscountReport fakeDiscount2 = new DiscountReport("strategy2", (byte) 10);
 
 		Mockito.when(strategyMock1.getDiscount(
 				Mockito.any(User.class),
-				Mockito.any(Event.class),
-				Mockito.any(Calendar.class),
+				Mockito.any(EventAssignment.class),
 				Mockito.anyLong())).thenReturn(fakeDiscount1);
 
 		Mockito.when(strategyMock2.getDiscount(
 				Mockito.any(User.class),
-				Mockito.any(Event.class),
-				Mockito.any(Calendar.class),
+				Mockito.any(EventAssignment.class),
 				Mockito.anyLong())).thenReturn(fakeDiscount2);
 
-		DiscountReport discount = discountService.getDiscount(user, event, airDate, 15);
+		DiscountReport discount = discountService.getDiscount(user, assignment, 15);
 		assertEquals(10, discount.getPercent());
 		assertEquals("strategy2", discount.getStrategyId());
-	}
-
-	private Set<Long> getSet(Long... args) {
-		Set<Long> vipSeats = new HashSet<Long>();
-
-		for (Long e : args) {
-			vipSeats.add(e);
-		}
-
-		return vipSeats;
 	}
 }

@@ -8,7 +8,7 @@ import ru.epam.spring.cinema.statistic.EventStatistic;
 
 public interface EventStatisticRepository {
 
-    public EventStatistic getByEventName(@Nonnull String eventName);
+    public EventStatistic getByEventId(@Nonnull Long eventId);
 
     public @Nonnull Collection<EventStatistic> getAll();
 

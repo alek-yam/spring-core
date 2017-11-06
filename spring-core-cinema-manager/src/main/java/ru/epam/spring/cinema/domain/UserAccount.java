@@ -6,15 +6,14 @@ package ru.epam.spring.cinema.domain;
  * @author Alex_Yamskov
  */
 public class UserAccount extends DomainObject {
-	private final Long userId;
-	private double balance;
+	private Long userId;
+	private Double balance;
 
-	public UserAccount(Long userId) {
-		this.userId = userId;
-		this.balance = 0;
+	public UserAccount() {
 	}
 
-	public UserAccount(Long userId, double balance) {
+	public UserAccount(long id, long userId, double balance) {
+		super(id);
 		this.userId = userId;
 		this.balance = balance;
 	}
@@ -23,12 +22,21 @@ public class UserAccount extends DomainObject {
 		return userId;
 	}
 
+	public void setUserId(Long userId) {
+		this.userId = userId;
+	}
+
 	public double getBalance() {
 		return balance;
 	}
 
 	public void setBalance(double balance) {
 		this.balance = balance;
+	}
+
+	@Override
+	public String toString() {
+		return "UserAccount [userId=" + userId + ", balance=" + balance + "]";
 	}
 
 }

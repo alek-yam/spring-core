@@ -1,17 +1,10 @@
 package ru.epam.spring.cinema.ui.console.state;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
-
-import ru.epam.spring.cinema.ui.console.convertor.AbstractConverter;
-import ru.epam.spring.cinema.ui.console.convertor.DateConverter;
-import ru.epam.spring.cinema.ui.console.convertor.DoubleConverter;
-import ru.epam.spring.cinema.ui.console.convertor.IntegerConverter;
-import ru.epam.spring.cinema.ui.console.convertor.LongConverter;
-import ru.epam.spring.cinema.ui.console.convertor.SetLongConverter;
-
+import java.util.function.Function;
 
 /**
  * Abstract state class that defined basic methods to get user input and call
@@ -22,16 +15,6 @@ import ru.epam.spring.cinema.ui.console.convertor.SetLongConverter;
 public abstract class AbstractState {
     public static final String DATE_TIME_INPUT_PATTERN = "yyyy-MM-dd HH:mm";
     public static final String ONLY_DATE_INPUT_PATTERN = "yyyy-MM-dd";
-
-    private static SimpleDateFormat dateTimeFormat = new SimpleDateFormat(DATE_TIME_INPUT_PATTERN);
-    private static SimpleDateFormat onlyDateFormat = new SimpleDateFormat(ONLY_DATE_INPUT_PATTERN);
-
-    protected static final IntegerConverter integerConverter = new IntegerConverter();
-    protected static final LongConverter longConverter = new LongConverter();
-    protected static final DoubleConverter doubleConverter = new DoubleConverter();
-    protected static final DateConverter dateTimeConverter = new DateConverter(DATE_TIME_INPUT_PATTERN);
-    protected static final DateConverter onlyDateConverter = new DateConverter(ONLY_DATE_INPUT_PATTERN);
-    protected static final SetLongConverter setLongConverter = new SetLongConverter();
 
     private static Scanner scanner = new Scanner(System.in, "UTF-8");
 
@@ -61,12 +44,12 @@ public abstract class AbstractState {
         return line;
     }
 
-    protected <R> R readInput(String prefix, AbstractConverter<R> converter) {
+    protected <R> R readInput(String prefix, Function<String, R> convertFunction) {
         R input = null;
         do {
             String str = readStringInput(prefix);
             try {
-                input = converter.convert(str);
+                input = convertFunction.apply(str);
             } catch (Exception e) {
                 System.err.println("Failed to convert: " + e.getMessage());
                 input = null;
@@ -76,39 +59,41 @@ public abstract class AbstractState {
     }
 
     protected int readIntInput(String prefix) {
-        return readInput(prefix, integerConverter);
+        return readInput(prefix, s -> Integer.parseInt(s));
     }
 
     protected int readIntInput(final String prefix, final int max) {
-    	return readInput(prefix, new IntegerConverter(max));
+        return readInput(prefix, s -> {
+            int i = Integer.parseInt(s);
+            if (i > max) {
+                throw new IllegalArgumentException("Input can't be more than " + max);
+            }
+            return i;
+        });
     }
 
     protected long readLongInput(String prefix) {
-        return readInput(prefix, longConverter);
+        return readInput(prefix, s -> Long.parseLong(s));
     }
 
     protected double readDoubleInput(String prefix) {
-        return readInput(prefix, doubleConverter);
+        return readInput(prefix, s -> Double.parseDouble(s));
     }
 
-    protected Calendar readDateTimeInput(String prefix) {
-    	Calendar dt = new GregorianCalendar();
-    	dt.setTime(readInput(prefix, dateTimeConverter));
-    	return dt;
+    protected LocalDateTime readDateTimeInput(String prefix) {
+    	return readInput(prefix, s -> LocalDateTime.parse(s, DateTimeFormatter.ofPattern(DATE_TIME_INPUT_PATTERN)));
     }
 
-    protected Calendar readDateInput(String prefix) {
-    	Calendar dt = new GregorianCalendar();
-    	dt.setTime(readInput(prefix, onlyDateConverter));
-    	return dt;
+    protected LocalDate readDateInput(String prefix) {
+    	return readInput(prefix, s -> LocalDate.parse(s, DateTimeFormatter.ofPattern(DATE_TIME_INPUT_PATTERN)));
     }
 
-    protected String formatDateTime(Calendar dt) {
-    	return dateTimeFormat.format(dt.getTime());
+    protected String formatDateTime(LocalDateTime dt) {
+    	return DateTimeFormatter.ofPattern(DATE_TIME_INPUT_PATTERN).format(dt);
     }
 
-    protected String formatDate(Calendar dt) {
-    	return onlyDateFormat.format(dt.getTime());
+    protected String formatDate(LocalDate dt) {
+    	return DateTimeFormatter.ofPattern(ONLY_DATE_INPUT_PATTERN).format(dt);
     }
 
     protected abstract void printDefaultInformation();

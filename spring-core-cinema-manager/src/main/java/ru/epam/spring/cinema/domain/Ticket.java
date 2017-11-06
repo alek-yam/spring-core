@@ -1,50 +1,48 @@
 package ru.epam.spring.cinema.domain;
 
-import java.util.Calendar;
-
 /**
  * The ticket definition.
  *
  * @author Alex_Yamskov
  */
 public class Ticket extends DomainObject implements Comparable<Ticket> {
-    private final Long userId;
-    private final Long eventId;
-    private final Calendar date;
-    private final long seat;
+    private Long userId;
+    private Long eventAssignmentId;
+    private Long seat;
 
-    public Ticket(Long id, Long userId, Long eventId, Calendar date, long seat) {
-    	super.setId(id);
-        this.userId = userId;
-        this.eventId = eventId;
-        this.date = date;
-        this.seat = seat;
-    }
+    public Ticket() {}
 
-    public Ticket(Long userId, Long eventId, Calendar date, long seat) {
+    public Ticket(long userId, long eventAssignmentId, long seat) {
         this.userId = userId;
-        this.eventId = eventId;
-        this.date = date;
+        this.eventAssignmentId = eventAssignmentId;
         this.seat = seat;
     }
 
     public Long getUserId() {
-        return userId;
-    }
+		return userId;
+	}
 
-    public Long getEventId() {
-        return eventId;
-    }
+	public void setUserId(Long userId) {
+		this.userId = userId;
+	}
 
-    public Calendar getDate() {
-        return date;
-    }
+	public Long getEventAssignmentId() {
+		return eventAssignmentId;
+	}
 
-    public long getSeat() {
-        return seat;
-    }
+	public void setEventAssignmentId(Long eventAssignmentId) {
+		this.eventAssignmentId = eventAssignmentId;
+	}
 
-    @Override
+	public Long getSeat() {
+		return seat;
+	}
+
+	public void setSeat(Long seat) {
+		this.seat = seat;
+	}
+
+	@Override
     public int compareTo(Ticket other) {
         if (other == null) {
             return 1;
@@ -60,4 +58,9 @@ public class Ticket extends DomainObject implements Comparable<Ticket> {
 
         return 0;
     }
+
+	@Override
+	public String toString() {
+		return "Ticket [userId=" + userId + ", eventAssignmentId=" + eventAssignmentId + ", seat=" + seat + "]";
+	}
 }

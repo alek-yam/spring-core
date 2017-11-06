@@ -19,7 +19,7 @@ public class DataSourceConfig {
 			.setName("cinemaDb")
 			.setType(EmbeddedDatabaseType.H2)
 			.addScript("schema.sql")
-			.addScript("test-data.sql")
+			//.addScript("test-data.sql")
 			.build();
 		return db;
 	}

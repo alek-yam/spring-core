@@ -1,8 +1,9 @@
 package ru.epam.spring.cinema.service.discount;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import ru.epam.spring.cinema.domain.DiscountReport;
-import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.User;
 
 /**
@@ -22,8 +23,7 @@ import ru.epam.spring.cinema.domain.User;
 @Component
 public class BirthdayDiscount implements DiscountStrategy {
 	private static final DiscountReport ZERO_DISCOUNT = new DiscountReport(BirthdayDiscount.class.getSimpleName(), (byte) 0);
-
-	private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+	private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 	private static Logger log = Logger.getLogger(BirthdayDiscount.class.getName());
 
 	static {
@@ -40,62 +40,60 @@ public class BirthdayDiscount implements DiscountStrategy {
 	}
 
 	@Override
-    public DiscountReport getDiscount(User user, Event event, Calendar airDate, long numberOfTickets) {
+    public DiscountReport getDiscount(User user, EventAssignment assignment, long numberOfTickets) {
 		if (user == null || user.getBirthday() == null) {
 			return ZERO_DISCOUNT;
 		}
 
-		if (isHappyAirDate(airDate, user)) {
+		if (isHappyAirDate(assignment.getAirDate(), user)) {
 			return birthdayDiscount;
 		}
 
 	    return ZERO_DISCOUNT;
     }
 
-	private boolean isHappyAirDate(Calendar airDate, User user) {
-		log.log(Level.INFO, "airDate = " + dateFormat.format(airDate.getTime()));
+	private boolean isHappyAirDate(LocalDateTime airDate, User user) {
+		LocalDate eventDate = airDate.toLocalDate();
+		log.log(Level.INFO, "airDate = " + eventDate.format(TIME_FORMATTER));
 
-		Calendar dateFrom = (Calendar) airDate.clone();
-		dateFrom.add(Calendar.DAY_OF_YEAR, -birthdayTimeFrame);
-		log.log(Level.INFO, "dateFrom = " + dateFormat.format(dateFrom.getTime()));
+		LocalDate birthday = getRelevantBirthday(eventDate, user);
+		log.log(Level.INFO, "birthday = " + birthday.format(TIME_FORMATTER));
 
-		Calendar dateTo = (Calendar) airDate.clone();
-		dateTo.add(Calendar.DAY_OF_YEAR, birthdayTimeFrame);
-		log.log(Level.INFO, "dateTo = " + dateFormat.format(dateTo.getTime()));
+		// calculating number of days before or after event
+		long totalDays = ChronoUnit.DAYS.between(eventDate, birthday);
+		log.log(Level.INFO, "Days before/after event: " + totalDays);
 
-		Calendar birthday = user.getBirthday();
-		log.log(Level.INFO, "birthday = " + dateFormat.format(birthday.getTime()));
-
-		int airDateYear = airDate.get(Calendar.YEAR);
-		int birthdayMonth = birthday.get(Calendar.MONTH);
-		int birthdayDayOfMonth = birthday.get(Calendar.DAY_OF_MONTH);
-		Calendar celebration = new GregorianCalendar(airDateYear, birthdayMonth, birthdayDayOfMonth);
-
-		if (checkCelebrationDate(celebration, dateFrom, dateTo)) {
-			return true;
-		}
-
-		celebration.add(Calendar.YEAR, 1);
-		if (checkCelebrationDate(celebration, dateFrom, dateTo)) {
-			return true;
-		}
-
-		celebration.add(Calendar.YEAR, -2);
-		if (checkCelebrationDate(celebration, dateFrom, dateTo)) {
-			return true;
-		}
-
-		return false;
+		return isInBirthdayTimeFrame(totalDays);
 	}
 
-	private boolean checkCelebrationDate(Calendar celebration, Calendar dateFrom, Calendar dateTo) {
-		log.log(Level.INFO, "celebration = " + dateFormat.format(celebration.getTime()));
+	private LocalDate getRelevantBirthday(LocalDate eventDate, User user) {
+		LocalDate birthday = user.getBirthday();
+		LocalDate thisYearBirthday = birthday.withYear(eventDate.getYear());
+		LocalDate prevYearBirthday = birthday.withYear(eventDate.getYear() - 1);
+		LocalDate nextYearBirthday = birthday.withYear(eventDate.getYear() + 1);
 
-		if (celebration.after(dateFrom)) {
-			if (celebration.before(dateTo)) {
-				log.log(Level.INFO, "Birthday discount is available!!!");
-				return true;
-			}
+		long thisYearDif = Math.abs(ChronoUnit.DAYS.between(eventDate, thisYearBirthday));
+		long prevYearDif = Math.abs(ChronoUnit.DAYS.between(eventDate, prevYearBirthday));
+		long nextYearDif = Math.abs(ChronoUnit.DAYS.between(eventDate, nextYearBirthday));
+
+		LocalDate currentBirthday = thisYearBirthday;
+		long currentDif = thisYearDif;
+
+		if (prevYearDif < currentDif) {
+			currentBirthday = prevYearBirthday;
+		}
+
+		if (nextYearDif < currentDif) {
+			currentBirthday = nextYearBirthday;
+		}
+
+		return currentBirthday;
+	}
+
+	private boolean isInBirthdayTimeFrame(long totalDays) {
+		if (totalDays >= -birthdayTimeFrame && totalDays <= birthdayTimeFrame) {
+			log.log(Level.INFO, "Birthday discount is available!");
+			return true;
 		}
 
 		log.log(Level.INFO, "No birthday discount is available.");

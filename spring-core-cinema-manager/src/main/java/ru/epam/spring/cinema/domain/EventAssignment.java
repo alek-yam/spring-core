@@ -2,10 +2,18 @@ package ru.epam.spring.cinema.domain;
 
 import java.time.LocalDateTime;
 
-public class EventAssignment extends DomainObject {
+public class EventAssignment extends DomainObject implements Comparable<EventAssignment> {
 	private Long eventId;
 	private Long auditoriumId;
 	private LocalDateTime airDate;
+
+	public EventAssignment() {}
+
+	public EventAssignment(Long eventId, Long auditoriumId, LocalDateTime airDate) {
+		this.eventId = eventId;
+		this.auditoriumId = auditoriumId;
+		this.airDate = airDate;
+	}
 
 	public Long getEventId() {
 		return eventId;
@@ -29,6 +37,11 @@ public class EventAssignment extends DomainObject {
 
 	public void setAirDate(LocalDateTime airDate) {
 		this.airDate = airDate;
+	}
+
+	@Override
+	public int compareTo(EventAssignment other) {
+		return this.airDate.compareTo(other.getAirDate());
 	}
 
 	@Override
@@ -67,4 +80,10 @@ public class EventAssignment extends DomainObject {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "EventAssignment [id=" + super.getId() + ", eventId=" + eventId + ", auditoriumId=" + auditoriumId + ", airDate=" + airDate + "]";
+	}
+
 }

@@ -6,7 +6,6 @@ package ru.epam.spring.cinema.domain;
  * @author Alex_Yamskov
  */
 public class PriceReport {
-
 	private final double totalPrice;
 	private final double finalPrice;
 	private final DiscountReport discountReport;

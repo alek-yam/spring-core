@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.repository.EventStatisticRepository;
 import ru.epam.spring.cinema.statistic.EventStatistic;
 
@@ -31,8 +32,8 @@ public class CounterAspect {
 	@Pointcut("execution(* ru.epam.spring.cinema.service.EventService.getByName(..))")
 	private void getEventByName() {}
 
-	@Pointcut("execution(* ru.epam.spring.cinema.service.BookingService.getTicketsPrice(..))")
-	private void getTicketsPrice() {}
+	@Pointcut("execution(* ru.epam.spring.cinema.service.BookingService.getFinalPrice(..))")
+	private void getFinalPrice() {}
 
 	@Pointcut("execution(* ru.epam.spring.cinema.service.BookingService.bookTickets(..))")
 	private void bookTickets() {}
@@ -44,44 +45,44 @@ public class CounterAspect {
     	}
 
     	Event event = (Event) retVal;
-    	EventStatistic eventStat = getStatistic(event.getName());
+    	EventStatistic eventStat = getStatistic(event.getId());
     	eventStat.incrementAccessedByNameCount();
     	statisticRepository.save(eventStat);
 	}
 
-    @AfterReturning(pointcut="getTicketsPrice()")
-	public void afterReturningGetTicketsPrice(JoinPoint jp) {
-    	Object eventArg = jp.getArgs()[0];
+    @AfterReturning(pointcut="getFinalPrice()")
+	public void afterReturningGetFinalPrice(JoinPoint jp) {
+    	Object assignmentArg = jp.getArgs()[0];
 
-    	if (eventArg == null) {
+    	if (assignmentArg == null) {
     		return;
     	}
 
-    	Event event = (Event) eventArg;
-    	EventStatistic eventStat = getStatistic(event.getName());
+    	EventAssignment assignment = (EventAssignment) assignmentArg;
+    	EventStatistic eventStat = getStatistic(assignment.getEventId());
     	eventStat.incrementPriceWereQueriedCount();
     	statisticRepository.save(eventStat);
 	}
 
     @AfterReturning(pointcut="bookTickets()")
 	public void afterReturningBookTickets(JoinPoint jp) {
-    	Object eventArg = jp.getArgs()[0];
+    	Object assignmentArg = jp.getArgs()[0];
 
-    	if (eventArg == null) {
+    	if (assignmentArg == null) {
     		return;
     	}
 
-    	Event event = (Event) eventArg;
-    	EventStatistic eventStat = getStatistic(event.getName());
+    	EventAssignment assignment = (EventAssignment) assignmentArg;
+    	EventStatistic eventStat = getStatistic(assignment.getEventId());
     	eventStat.incrementTicketsWereBookedCount();
     	statisticRepository.save(eventStat);
 	}
 
-    private EventStatistic getStatistic(String eventName) {
-    	EventStatistic eventStat = statisticRepository.getByEventName(eventName);
+    private EventStatistic getStatistic(Long eventId) {
+    	EventStatistic eventStat = statisticRepository.getByEventId(eventId);
 
     	if (eventStat == null) {
-    		eventStat = new EventStatistic(eventName);
+    		eventStat = new EventStatistic(eventId);
     	}
 
     	return eventStat;

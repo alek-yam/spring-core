@@ -2,17 +2,21 @@ package ru.epam.spring.cinema.statistic;
 
 public class EventStatistic {
 
-	private final String eventName;
+	private Long eventId;
 	private long accessedByNameCount = 0;
 	private long priceWereQueriedCount = 0;
 	private long ticketsWereBookedCount = 0;
 
-	public EventStatistic(String eventName) {
-		this.eventName = eventName;
+	public EventStatistic(Long eventId) {
+		this.eventId = eventId;
 	}
 
-	public String getEventName() {
-	    return eventName;
+	public Long getEventId() {
+	    return eventId;
+    }
+
+	public void setEventId(Long eventId) {
+	    this.eventId = eventId;
     }
 
 	public long getAccessedByNameCount() {
@@ -53,7 +57,7 @@ public class EventStatistic {
 
 	@Override
     public String toString() {
-	    return "EventStatistics [eventName=" + eventName
+	    return "EventStatistics [eventId=" + eventId
 	            + ", accessedByNameCount=" + accessedByNameCount
 	            + ", priceWereQueriedCount=" + priceWereQueriedCount
 	            + ", ticketsWereBookedCount=" + ticketsWereBookedCount + "]";

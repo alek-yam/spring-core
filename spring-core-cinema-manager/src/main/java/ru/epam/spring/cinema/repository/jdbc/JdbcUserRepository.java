@@ -1,14 +1,12 @@
 package ru.epam.spring.cinema.repository.jdbc;
 
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -67,7 +65,7 @@ public class JdbcUserRepository implements UserRepository {
         	return users.get(0);
         }
 
-        throw new RepositoryException("Cannot get user by ID [" + id + "]: more than one found.");
+        throw new RepositoryException("More than one users with ID [" + id + "] were found.");
     }
 
 	@Override
@@ -80,25 +78,15 @@ public class JdbcUserRepository implements UserRepository {
 
 	@Override
     public User save(@Nonnull User object) {
-		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("firstName", object.getFirstName());
-		paramMap.put("lastName", object.getLastName());
-		Date birthday = new Date(object.getBirthday().getTime().getTime());
-		paramMap.put("birthday", birthday);
-		paramMap.put("email", object.getEmail());
-		paramMap.put("password", object.getPassword());
-		String roles = String.join(",", object.getRoles());
-		paramMap.put("roles", roles);
-
-	    if (object.getId() == null) {
+		Map<String, Object> paramMap = userToMap(object);
+	    if (paramMap.get("id") == null) {
 	    	KeyHolder keyHolder = new GeneratedKeyHolder();
 	    	insertUser.updateByNamedParam(paramMap, keyHolder);
 	    	object.setId(keyHolder.getKey().longValue());
 	    } else {
-	    	paramMap.put("id", object.getId());
 	    	int updatedRows = updateUser.updateByNamedParam(paramMap);
 	    	if (updatedRows == 0) {
-	    		throw new RepositoryException("Cannot update user with ID [" + object.getId() + "]: not found.");
+	    		throw new RepositoryException("User with ID [" + object.getId() + "] was not found.");
 	    	}
 	    }
 
@@ -110,7 +98,7 @@ public class JdbcUserRepository implements UserRepository {
 		String sql = "delete from users where id = ?";
 		int updatedRows = template.update(sql, id);
     	if (updatedRows == 0) {
-    		throw new RepositoryException("Cannot remove user with ID [" + id + "]: not found.");
+    		throw new RepositoryException("User with ID [" + id + "] was not found.");
     	}
     }
 
@@ -143,12 +131,9 @@ public class JdbcUserRepository implements UserRepository {
 	        	if (user == null) {
 					String firstName = rs.getString("firstName");
 					String lastName = rs.getString("lastName");
+					LocalDate birthday = rs.getDate("birthday").toLocalDate();
 					String email = rs.getString("email");
 					String password = rs.getString("password");
-
-					Date sqlDate = rs.getDate("birthday");
-		            Calendar birthday = new GregorianCalendar();
-		            birthday.setTime(sqlDate);
 
 		            String rolesStr = rs.getString("roles");
 		            String[] rolesArray = rolesStr.split(",");
@@ -217,4 +202,21 @@ public class JdbcUserRepository implements UserRepository {
 		}
 	}
 
+	private Map<String, Object> userToMap(User user) {
+		Map<String, Object> paramMap = new HashMap<>();
+
+		if (user.getId() != null) {
+			paramMap.put("id", user.getId());
+		}
+
+		paramMap.put("firstName", user.getFirstName());
+		paramMap.put("lastName", user.getLastName());
+		paramMap.put("birthday", java.sql.Date.valueOf(user.getBirthday()));
+		paramMap.put("email", user.getEmail());
+		paramMap.put("password", user.getPassword());
+		String roles = String.join(",", user.getRoles());
+		paramMap.put("roles", roles);
+
+		return paramMap;
+	}
 }

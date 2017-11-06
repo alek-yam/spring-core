@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -73,7 +72,7 @@ public class JdbcEventRepository implements EventRepository {
         	return events.get(0);
         }
 
-        throw new RepositoryException("More than one event with ID [" + id + "] were found.");
+        throw new RepositoryException("More than one events with ID [" + id + "] were found.");
     }
 
 	@Override
@@ -144,7 +143,9 @@ public class JdbcEventRepository implements EventRepository {
 			}
 
 			Map<String, Object> paramMap = assignmentToMap(a);
-			insertAssigment.updateByNamedParam(paramMap);
+			KeyHolder keyHolder = new GeneratedKeyHolder();
+			insertAssigment.updateByNamedParam(paramMap, keyHolder);
+			a.setId(keyHolder.getKey().longValue());
 		}
 
 		insertAssigment.flush();
@@ -158,7 +159,9 @@ public class JdbcEventRepository implements EventRepository {
 		for (EventAssignment a : newAssigments) {
 			if (!curentAssigments.contains(a)) {
 				Map<String, Object> paramMap = assignmentToMap(a);
-				insertAssigment.updateByNamedParam(paramMap);
+				KeyHolder keyHolder = new GeneratedKeyHolder();
+				insertAssigment.updateByNamedParam(paramMap, keyHolder);
+				a.setId(keyHolder.getKey().longValue());
 			}
 		}
 
@@ -166,7 +169,8 @@ public class JdbcEventRepository implements EventRepository {
 
 		for (EventAssignment a : curentAssigments) {
 			if (!newAssigments.contains(a)) {
-				Map<String, Object> paramMap = assignmentToMap(a);
+				Map<String, Object> paramMap = new HashMap<>();
+				paramMap.put("id", a.getId());
 				removeAssigment.updateByNamedParam(paramMap);
 			}
 		}
@@ -204,23 +208,13 @@ public class JdbcEventRepository implements EventRepository {
 	        	if (assignmentId != 0) {
 
 	        		long auditoriumId = rs.getLong("auditoriumId");
-
-	        		if (auditoriumId == 0) {
-	        			throw new RepositoryException("Auditorium ID is not defined.");
-	        		}
-
 	        		Timestamp airTimestamp = rs.getTimestamp("airDate");
 
-	        		if (airTimestamp == null) {
-	        			throw new RepositoryException("Air date is not defined.");
-	        		}
-
-	        		LocalDateTime airDate = airTimestamp.toLocalDateTime();
-
 	        		EventAssignment assignment = new EventAssignment();
-	        		assignment.setId(id);
+	        		assignment.setId(assignmentId);
 	        		assignment.setEventId(event.getId());
 	        		assignment.setAuditoriumId(auditoriumId);
+	        		LocalDateTime airDate = airTimestamp.toLocalDateTime();
 	        		assignment.setAirDate(airDate);
 
 	        		Set<EventAssignment> assignments = event.getAssignments();
@@ -268,6 +262,26 @@ public class JdbcEventRepository implements EventRepository {
 			setReturnGeneratedKeys(true);
 		}
 	}
+
+//	private static final class UpdateAssigment extends BatchSqlUpdate {
+//		private static final String SQL_UPDATE_ASSIGNMENT =
+//				"UPDATE eventAssignments SET " +
+//				"eventId=:eventId, " +
+//				"airDate=:airDate, " +
+//				"auditoriumId=:auditoriumId " +
+//				"WHERE id=:id";
+//
+//		private static final int BATCH_SIZE = 10;
+//
+//		public UpdateAssigment(DataSource dataSource) {
+//			super(dataSource, SQL_UPDATE_ASSIGNMENT);
+//			declareParameter(new SqlParameter("id", Types.INTEGER));
+//			declareParameter(new SqlParameter("eventId", Types.INTEGER));
+//			declareParameter(new SqlParameter("airDate", Types.TIMESTAMP));
+//			declareParameter(new SqlParameter("auditoriumId", Types.INTEGER));
+//			setBatchSize(BATCH_SIZE);
+//		}
+//	}
 
 	private static final class InsertAssigment extends BatchSqlUpdate {
 		private static final String SQL_INCERT_ASSIGMENT =
@@ -321,98 +335,10 @@ public class JdbcEventRepository implements EventRepository {
 
 		paramMap.put("eventId", assignment.getEventId());
 		paramMap.put("auditoriumId", assignment.getAuditoriumId());
-
-		ZoneId zone = ZoneId.systemDefault();
-		Timestamp airTimestamp = new Timestamp(assignment.getAirDate().atZone(zone).toEpochSecond());
+		Timestamp airTimestamp = Timestamp.valueOf(assignment.getAirDate());
 		paramMap.put("airDate", airTimestamp);
 
 		return paramMap;
 	}
 
-	/*
-	private static final class EventAssigment {
-		private Long eventId;
-		private Calendar airDate;
-		private String auditoriumName;
-
-		public Long getEventId() {
-			return eventId;
-		}
-
-		public void setEventId(Long eventId) {
-			this.eventId = eventId;
-		}
-
-		public Calendar getAirDate() {
-			return airDate;
-		}
-
-		public void setAirDate(Calendar airDate) {
-			this.airDate = airDate;
-		}
-
-		public String getAuditoriumName() {
-			return auditoriumName;
-		}
-
-		public void setAuditoriumName(String auditoriumName) {
-			this.auditoriumName = auditoriumName;
-		}
-
-		@Override
-        public int hashCode() {
-	        final int prime = 31;
-	        int result = 1;
-	        result = prime * result
-	                + ((airDate == null) ? 0 : airDate.hashCode());
-	        result = prime
-	                * result
-	                + ((auditoriumName == null) ? 0 : auditoriumName.hashCode());
-	        result = prime * result
-	                + ((eventId == null) ? 0 : eventId.hashCode());
-	        return result;
-        }
-
-		@Override
-        public boolean equals(Object obj) {
-	        if (this == obj)
-		        return true;
-	        if (obj == null)
-		        return false;
-	        if (getClass() != obj.getClass())
-		        return false;
-	        EventAssigment other = (EventAssigment) obj;
-	        if (airDate == null) {
-		        if (other.airDate != null)
-			        return false;
-	        } else if (!airDate.equals(other.airDate))
-		        return false;
-	        if (auditoriumName == null) {
-		        if (other.auditoriumName != null)
-			        return false;
-	        } else if (!auditoriumName.equals(other.auditoriumName))
-		        return false;
-	        if (eventId == null) {
-		        if (other.eventId != null)
-			        return false;
-	        } else if (!eventId.equals(other.eventId))
-		        return false;
-	        return true;
-        }
-	}
-
-	private Set<EventAssigment> convertToAssigments(Long eventId, Map<Calendar, String> auditoriums) {
-		Set<EventAssigment> assigments = new HashSet<>(auditoriums.size());
-
-		for (Entry<Calendar,String> e : auditoriums.entrySet()) {
-			EventAssigment a = new EventAssigment();
-			a.setEventId(eventId);
-			a.setAirDate(e.getKey());
-			a.setAuditoriumName(e.getValue());
-			assigments.add(a);
-		}
-
-		return assigments;
-	}
-	*/
 }

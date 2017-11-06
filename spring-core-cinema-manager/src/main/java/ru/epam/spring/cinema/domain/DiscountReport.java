@@ -6,7 +6,6 @@ package ru.epam.spring.cinema.domain;
  * @author Alex_Yamskov
  */
 public class DiscountReport {
-
 	private final String strategyId;
 	private final byte percent;
 

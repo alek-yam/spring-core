@@ -1,10 +1,11 @@
 package ru.epam.spring.cinema.ui.console.state;
 
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
-import java.util.NavigableSet;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationContext;
 
@@ -12,6 +13,7 @@ import ru.epam.spring.cinema.domain.Auditorium;
 import ru.epam.spring.cinema.domain.BookingReport;
 import ru.epam.spring.cinema.domain.DomainObject;
 import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.PriceReport;
 import ru.epam.spring.cinema.domain.Ticket;
 import ru.epam.spring.cinema.domain.User;
@@ -68,17 +70,17 @@ public class BookingState extends AbstractState {
 
     private void getBookedTickets() {
         System.out.println("> Select event: ");
-        Event event = selectDomainObject(eventService);
+        Event event = selectDomainObject(eventService, e -> e.getName());
         if (event == null) {
             System.err.println("No event found");
             return;
         }
 
-        System.out.println("> Select air dates: ");
-        Calendar airDate = selectAirDate(event.getAirDates());
+        System.out.println("> Select event assignment: ");
+        final EventAssignment assignment = selectEventAssignment(event.getAssignments());
 
         printDelimiter();
-        Set<Ticket> bookedTickets = bookingService.getPurchasedTicketsForEvent(event, airDate);
+        Set<Ticket> bookedTickets = bookingService.getPurchasedTicketsForEvent(assignment);
         for (Ticket t : bookedTickets) {
         	String email = "unknown user";
         	if (t.getUserId() != null) {
@@ -91,19 +93,21 @@ public class BookingState extends AbstractState {
 
     private void bookTickets() {
         System.out.println("> Select event: ");
-        final Event event = selectDomainObject(eventService);
+        final Event event = selectDomainObject(eventService, e -> e.getName());
         if (event == null) {
             System.err.println("No event found");
             return;
         }
 
-        System.out.println("> Select air dates: ");
-        final Calendar airDate = selectAirDate(event.getAirDates());
+        System.out.println("> Select event assignment: ");
+        final EventAssignment assignment = selectEventAssignment(event.getAssignments());
+
         System.out.println("> Select seats: ");
-        final Set<Long> seats = selectSeats(event, airDate);
+        final Set<Long> seats = selectSeats(assignment);
+
         System.out.println("> Select user: ");
         final User userForBooking;
-        User user = selectDomainObject(userService);
+        User user = selectDomainObject(userService, u -> u.getFirstName() + " " + u.getLastName());
         if (user == null) {
             System.out.println("No user found. Input user info for booking: ");
             String email = readStringInput("Email: ");
@@ -117,7 +121,7 @@ public class BookingState extends AbstractState {
             userForBooking = user;
         }
 
-        BookingReport booking = bookingService.bookTickets(event, airDate, userForBooking, seats);
+        BookingReport booking = bookingService.bookTickets(assignment, userForBooking, seats);
         double finalPrice = booking.getPriceReport().getFinalPrice();
         byte discountPercent = booking.getPriceReport().getDiscountReport().getPercent();
 
@@ -127,46 +131,38 @@ public class BookingState extends AbstractState {
 
     private void getTicketsPrice() {
         System.out.println("> Select event: ");
-        Event event = selectDomainObject(eventService);
+        Event event = selectDomainObject(eventService, e -> e.getName());
         if (event == null) {
             System.err.println("No event found");
             return;
         }
 
-        System.out.println("> Select air dates: ");
-        Calendar airDate = selectAirDate(event.getAirDates());
+        System.out.println("> Select event assignment: ");
+        final EventAssignment assignment = selectEventAssignment(event.getAssignments());
+
         System.out.println("> Select seats: ");
-        Set<Long> seats = selectSeats(event, airDate);
+        final Set<Long> seats = selectSeats(assignment);
+
         System.out.println("> Select user: ");
-        User user = selectDomainObject(userService);
+        final User user = selectDomainObject(userService, u -> u.getFirstName() + " " + u.getLastName());
         if (user == null) {
             System.out.println("No user found");
         }
 
-        PriceReport priceReport = bookingService.getFinalPrice(event, airDate, user, seats);
+        PriceReport priceReport = bookingService.getFinalPrice(assignment, user, seats);
         double finalPrice = priceReport.getFinalPrice();
         byte discountPercent = priceReport.getDiscountReport().getPercent();
         printDelimiter();
         System.out.println("Price for tickets: " + finalPrice + ", with discount: " + discountPercent + "%");
     }
 
-    private Set<Long> selectSeats(Event event, Calendar airDate) {
-		String audName = event.getAuditoriums().get(airDate);
-		Auditorium aud = auditoriumService.getByName(audName);
+    private Set<Long> selectSeats(EventAssignment assignment) {
+        Auditorium aud = auditoriumService.getById(assignment.getAuditoriumId());
 
-        Set<Ticket> tickets = bookingService.getPurchasedTicketsForEvent(event, airDate);
-
-        List<Long> bookedSeats = new ArrayList<Long>();
-        for (Ticket t : tickets) {
-        	bookedSeats.add(t.getSeat());
-        }
-
-        List<Long> freeSeats = new ArrayList<Long>();
-        for (Long seat : aud.getAllSeatNumbers()) {
-        	if (!bookedSeats.contains(seat)) {
-        		freeSeats.add(seat);
-        	}
-        }
+        Set<Ticket> tickets = bookingService.getPurchasedTicketsForEvent(assignment);
+        List<Long> bookedSeats = tickets.stream().map(t -> t.getSeat()).collect(Collectors.toList());
+        List<Long> freeSeats = aud.getSeatNumbers().stream().filter(seat -> !bookedSeats.contains(seat))
+                .collect(Collectors.toList());
 
         System.out.println("Free seats: ");
         System.out.println(freeSeats);
@@ -175,41 +171,36 @@ public class BookingState extends AbstractState {
     }
 
     private Set<Long> inputSeats() {
-    	return readInput("Input seats (comma separated): ", setLongConverter);
+        Set<Long> set = readInput("Input seats (comma separated): ", s ->
+            Arrays.stream(s.split(","))
+                .map(String::trim)
+                .mapToLong(Long::parseLong)
+                .boxed().collect(Collectors.toSet()));
+        return set;
     }
 
-    private Calendar selectAirDate(NavigableSet<Calendar> airDates) {
-    	List<Calendar> list = new ArrayList<Calendar>(airDates);
+    private EventAssignment selectEventAssignment(Set<EventAssignment> assignments) {
+    	List<EventAssignment> list = assignments.stream().collect(Collectors.toList());
+    	EventAssignment currAssignment;
         for (int i = 0; i < list.size(); i++) {
-            System.out.println("[" + (i + 1) + "] " + formatDateTime(list.get(i)));
+        	currAssignment = list.get(i);
+        	Auditorium auditorium = auditoriumService.getById(currAssignment.getAuditoriumId());
+        	LocalDateTime airDate = currAssignment.getAirDate();
+            System.out.println("[" + (i + 1) + "] " + auditorium.getName() + ", " + formatDateTime(airDate));
         }
-        int dateIndex = readIntInput("Input air date index: ", list.size()) - 1;
-        return list.get(dateIndex);
+        int assignmentIndex = readIntInput("Input event assignment index: ", list.size()) - 1;
+        return list.get(assignmentIndex);
     }
 
-    private <T extends DomainObject> T selectDomainObject(AbstractService<T> service) {
+    private <T extends DomainObject> T selectDomainObject(AbstractService<T> service, Function<T, String> displayFunction) {
         if (!service.getAll().isEmpty()) {
         	for (T obj : service.getAll()) {
-        		System.out.println("[" + obj.getId() + "] " + display(obj));
+        		System.out.println("[" + obj.getId() + "] " + displayFunction.apply(obj));
         	}
             long id = readIntInput("Input id (-1 for nothing): ");
             return service.getById(id);
         } else {
             return null;
         }
-    }
-
-    private <T extends DomainObject> String display(T obj) {
-    	if (obj instanceof Event) {
-    		Event e = (Event) obj;
-    		return e.getName();
-    	}
-
-    	if (obj instanceof User) {
-    		User u = (User) obj;
-    		return u.getFirstName() + " " + u.getLastName();
-    	}
-
-    	return obj.getId().toString();
     }
 }

@@ -1,6 +1,5 @@
 package ru.epam.spring.cinema.service;
 
-import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -10,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ru.epam.spring.cinema.domain.DiscountReport;
-import ru.epam.spring.cinema.domain.Event;
+import ru.epam.spring.cinema.domain.EventAssignment;
 import ru.epam.spring.cinema.domain.User;
 import ru.epam.spring.cinema.service.discount.DiscountStrategy;
 
@@ -30,11 +29,11 @@ public class DiscountServiceImpl implements DiscountService {
 	}
 
 	@Override
-	public DiscountReport getDiscount(@Nullable User user, @Nonnull Event event,  @Nonnull Calendar airDate, long numberOfTickets) {
+	public DiscountReport getDiscount(@Nullable User user, @Nonnull EventAssignment assignment, long numberOfTickets) {
 		DiscountReport maxDiscount = null;
 
 		for (DiscountStrategy s : strategies) {
-			DiscountReport d = s.getDiscount(user, event, airDate, numberOfTickets);
+			DiscountReport d = s.getDiscount(user, assignment, numberOfTickets);
 			if (maxDiscount == null || d.getPercent() > maxDiscount.getPercent()) {
 				maxDiscount = d;
 			}

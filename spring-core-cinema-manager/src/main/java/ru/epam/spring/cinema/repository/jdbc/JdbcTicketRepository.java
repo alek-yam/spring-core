@@ -2,11 +2,8 @@ package ru.epam.spring.cinema.repository.jdbc;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +21,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import ru.epam.spring.cinema.domain.Event;
 import ru.epam.spring.cinema.domain.Ticket;
-import ru.epam.spring.cinema.domain.User;
 import ru.epam.spring.cinema.repository.TicketRepository;
 import ru.epam.spring.cinema.repository.exception.RepositoryException;
 import ru.epam.spring.cinema.repository.filter.TicketFilter;
@@ -76,7 +71,7 @@ public class JdbcTicketRepository implements TicketRepository {
         	return tickets.get(0);
         }
 
-        throw new RepositoryException("Cannot get ticket by ID [" + id + "]: more than one found.");
+        throw new RepositoryException("More than one tickets with ID [" + id + "] were found.");
     }
 
 	@Override
@@ -89,22 +84,15 @@ public class JdbcTicketRepository implements TicketRepository {
 
 	@Override
     public Ticket save(@Nonnull Ticket object) {
-		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("userId", object.getUserId());
-		paramMap.put("eventId", object.getEventId());
-		Timestamp airDate = new Timestamp(object.getDate().getTime().getTime());
-		paramMap.put("airDate", airDate);
-		paramMap.put("seatNum", object.getSeat());
-
-	    if (object.getId() == null) {
+		Map<String, Object> paramMap = ticketToMap(object);
+	    if (paramMap.get("id") == null) {
 	    	KeyHolder keyHolder = new GeneratedKeyHolder();
 	    	insertTicket.updateByNamedParam(paramMap, keyHolder);
 	    	object.setId(keyHolder.getKey().longValue());
 	    } else {
-	    	paramMap.put("id", object.getId());
 	    	int updatedRows = updateTicket.updateByNamedParam(paramMap);
 	    	if (updatedRows == 0) {
-	    		throw new RepositoryException("Cannot update ticket with ID [" + object.getId() + "]: not found.");
+	    		throw new RepositoryException("Ticket with ID [" + object.getId() + "] was not found.");
 	    	}
 	    }
 
@@ -116,7 +104,7 @@ public class JdbcTicketRepository implements TicketRepository {
 		String sql = "delete from tickets where id = ?";
 		int updatedRows = template.update(sql, id);
     	if (updatedRows == 0) {
-    		throw new RepositoryException("Cannot remove ticket with ID [" + id + "]: not found.");
+    		throw new RepositoryException("Ticket with ID [" + id + "] was not found.");
     	}
     }
 
@@ -125,20 +113,14 @@ public class JdbcTicketRepository implements TicketRepository {
     Collection<Ticket> getByFilter(@Nonnull TicketFilter filter) {
 		Map<String, Object> criterias = new HashMap<>();
 
-		User user = filter.getUser();
-    	if (user != null && user.getId() != null) {
-    		criterias.put("userId", user.getId());
+		Long userId = filter.getUserId();
+    	if (userId != null) {
+    		criterias.put("userId", userId);
     	}
 
-		Event event = filter.getEvent();
-    	if (event != null && event.getId() != null ) {
-    		criterias.put("eventId", event.getId());
-    	}
-
-    	Calendar date = filter.getDate();
-    	if (date != null) {
-    		Timestamp timestamp = new Timestamp(date.getTime().getTime());
-    		criterias.put("airDate", timestamp);
+    	Long assignmentId = filter.getAssignmentId();
+    	if (assignmentId != null) {
+    		criterias.put("assignmentId", assignmentId);
     	}
 
     	String sql = "SELECT * FROM tickets";
@@ -178,18 +160,20 @@ public class JdbcTicketRepository implements TicketRepository {
         public Ticket mapRow(ResultSet rs, int rowNum) throws SQLException {
 			Long id = rs.getLong("id");
 			Long userId = rs.getLong("userId");
-			Long eventId = rs.getLong("eventId");
+			Long assignmentId = rs.getLong("assignmentId");
 			Long seatNum = rs.getLong("seatNum");
-			Timestamp timestamp = rs.getTimestamp("airDate");
-
-            Calendar airDate = new GregorianCalendar();
-            airDate.setTimeInMillis(timestamp.getTime());
 
             if (userId == 0) {
             	userId = null;
             }
 
-            return new Ticket(id, userId, eventId, airDate, seatNum);
+            Ticket ticket = new Ticket();
+            ticket.setId(id);
+            ticket.setUserId(userId);
+            ticket.setEventAssignmentId(assignmentId);
+            ticket.setSeat(seatNum);
+
+            return ticket;
         }
 
 	}
@@ -198,8 +182,7 @@ public class JdbcTicketRepository implements TicketRepository {
 		private static final String SQL_UPDATE_TICKET =
 				"UPDATE tickets SET " +
 				"userId=:userId, " +
-				"eventId=:eventId, " +
-				"airDate=:airDate, " +
+				"assignmentId=:assignmentId, " +
 				"seatNum=:seatNum " +
 				"WHERE id=:id";
 
@@ -207,25 +190,37 @@ public class JdbcTicketRepository implements TicketRepository {
 			super(dataSource, SQL_UPDATE_TICKET);
 			declareParameter(new SqlParameter("id", Types.INTEGER));
 			declareParameter(new SqlParameter("userId", Types.INTEGER));
-			declareParameter(new SqlParameter("eventId", Types.INTEGER));
-			declareParameter(new SqlParameter("airDate", Types.TIMESTAMP));
+			declareParameter(new SqlParameter("assignmentId", Types.INTEGER));
 			declareParameter(new SqlParameter("seatNum", Types.INTEGER));
 		}
 	}
 
 	private static final class InsertTicket extends SqlUpdate {
 		private static final String SQL_INSERT_TICKET =
-				"INSERT INTO tickets (userId, eventId, airDate, seatNum) " +
-				"VALUES (:userId, :eventId, :airDate, :seatNum)";
+				"INSERT INTO tickets (userId, assignmentId, seatNum) " +
+				"VALUES (:userId, :assignmentId, :seatNum)";
 
 		public InsertTicket(DataSource dataSource) {
 			super(dataSource, SQL_INSERT_TICKET);
 			declareParameter(new SqlParameter("userId", Types.INTEGER));
-			declareParameter(new SqlParameter("eventId", Types.INTEGER));
-			declareParameter(new SqlParameter("airDate", Types.TIMESTAMP));
+			declareParameter(new SqlParameter("assignmentId", Types.INTEGER));
 			declareParameter(new SqlParameter("seatNum", Types.INTEGER));
 			setGeneratedKeysColumnNames(new String[]{"id"});
 			setReturnGeneratedKeys(true);
 		}
+	}
+
+	private Map<String, Object> ticketToMap(Ticket ticket) {
+		Map<String, Object> paramMap = new HashMap<>();
+
+		if (ticket.getId() != null) {
+			paramMap.put("id", ticket.getId());
+		}
+
+		paramMap.put("userId", ticket.getUserId());
+		paramMap.put("assignmentId", ticket.getEventAssignmentId());
+		paramMap.put("seatNum", ticket.getSeat());
+
+		return paramMap;
 	}
 }

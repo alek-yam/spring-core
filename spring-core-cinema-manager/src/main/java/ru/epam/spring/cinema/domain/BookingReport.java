@@ -1,7 +1,7 @@
 package ru.epam.spring.cinema.domain;
 
-import java.util.Calendar;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.Collection;
 
 /**
  * The booking definition.
@@ -9,42 +9,32 @@ import java.util.Set;
  * @author Alex_Yamskov
  */
 public class BookingReport extends DomainObject implements Comparable<BookingReport> {
-
-	private Calendar date;
 	private User user;
+	private Collection<Ticket> tickets;
 	private PriceReport priceReport;
-	private Set<Ticket> tickets;
+	private LocalDateTime date;
 
-	public Calendar getDate() {
-		return date;
-	}
-
-	public void setDate(Calendar date) {
-		this.date = date;
+	public BookingReport(User user, Collection<Ticket> tickets, PriceReport priceReport) {
+		this.user = user;
+		this.tickets = tickets;
+		this.priceReport = priceReport;
+		this.date = LocalDateTime.now();
 	}
 
 	public User getUser() {
 		return user;
 	}
 
-	public void setUser(User user) {
-		this.user = user;
+	public Collection<Ticket> getTickets() {
+		return tickets;
 	}
 
 	public PriceReport getPriceReport() {
 	    return priceReport;
     }
 
-	public void setPriceReport(PriceReport priceReport) {
-	    this.priceReport = priceReport;
-    }
-
-	public Set<Ticket> getTickets() {
-		return tickets;
-	}
-
-	public void setTickets(Set<Ticket> tickets) {
-		this.tickets = tickets;
+	public LocalDateTime getDate() {
+		return date;
 	}
 
 	@Override
@@ -59,9 +49,9 @@ public class BookingReport extends DomainObject implements Comparable<BookingRep
 
 	@Override
 	public String toString() {
-		return "BookingReport [date=" + date
-				+ ", user=" + user
+		return "BookingReport [user=" + user
 				+ ", priceReport=" + priceReport
+				+ ", date=" + date
 				+ ", tickets=" + tickets + "]";
 	}
 }

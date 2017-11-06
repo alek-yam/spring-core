@@ -67,7 +67,7 @@ public class EventManageState extends AbstractDomainObjectManageState<Event, Eve
     protected int printSubActions(int maxDefaultActions) {
         int index = maxDefaultActions;
         System.out.println(" " + (++index) + ") Find event by name");
-        System.out.println(" " + (++index) + ") Manage event info (air dates, auditoriums)");
+        System.out.println(" " + (++index) + ") Manage event assignments");
         return index - maxDefaultActions;
     }
 
@@ -79,14 +79,14 @@ public class EventManageState extends AbstractDomainObjectManageState<Event, Eve
             findEventByName();
             break;
         case 2:
-            manageEventInfo();
+            manageEventAssignments();
             break;
         default:
             System.err.println("Unknown action");
         }
     }
 
-    private void manageEventInfo() {
+    private void manageEventAssignments() {
         int id = readIntInput("Input event id: ");
 
         Event event = service.getById(Long.valueOf(id));
@@ -95,7 +95,7 @@ public class EventManageState extends AbstractDomainObjectManageState<Event, Eve
         } else {
             printDelimiter();
 
-            AbstractState manageState = new EventInfoManageState(event, service, auditoriumService);
+            AbstractState manageState = new EventAssignmentManageState(event, service, auditoriumService);
             manageState.run();
         }
     }

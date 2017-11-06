@@ -17,10 +17,10 @@ public class Auditorium extends DomainObject {
 
     public Auditorium() {}
 
-    public Auditorium(long id, String name, long numberOfSeats, Set<Long> vipSeats) {
+    public Auditorium(long id, String name, long capacity, Set<Long> vipSeats) {
     	super(id);
     	this.name = name;
-    	this.seats = createSeats(id, numberOfSeats, vipSeats);
+    	this.seats = createSeats(id, capacity, vipSeats);
     }
 
     public String getName() {
@@ -43,7 +43,7 @@ public class Auditorium extends DomainObject {
         return seats.size();
     }
 
-    public Set<Long> getAllSeatNumbers() {
+    public Set<Long> getSeatNumbers() {
     	return seats.keySet();
     }
 
@@ -54,45 +54,18 @@ public class Auditorium extends DomainObject {
         		.boxed().collect(Collectors.toSet());
     }
 
-/*
-    public long countVipSeats(Collection<Long> seatNumbers) {
-    	long count = 0;
-
-    	for (Long sn : seatNumbers) {
-    		Seat seat = seats.get(sn);
-    		if (seat != null && seat.isVip()) {
-    			count++;
-    		}
-    	}
-
-    	return count;
-    }
-*/
-
-	@Override
-    public int hashCode() {
-	    final int prime = 31;
-	    int result = 1;
-	    result = prime * result + ((name == null) ? 0 : name.hashCode());
-	    return result;
-    }
-
-	@Override
-    public boolean equals(Object obj) {
-	    if (this == obj)
-		    return true;
-	    if (obj == null)
-		    return false;
-	    if (getClass() != obj.getClass())
-		    return false;
-	    Auditorium other = (Auditorium) obj;
-	    if (name == null) {
-		    if (other.name != null)
-			    return false;
-	    } else if (!name.equals(other.name))
-		    return false;
-	    return true;
-    }
+//    public long countVipSeats(Collection<Long> seatNumbers) {
+//    	long count = 0;
+//
+//    	for (Long sn : seatNumbers) {
+//    		Seat seat = seats.get(sn);
+//    		if (seat != null && seat.isVip()) {
+//    			count++;
+//    		}
+//    	}
+//
+//    	return count;
+//    }
 
 	@Override
 	public String toString() {
@@ -101,12 +74,13 @@ public class Auditorium extends DomainObject {
 			+ ", seats=" + Arrays.toString(seats.values().toArray()) + "]";
 	}
 
-	public static Map<Long, Seat> createSeats(Long auditoriumId, long numberOfSeats, Set<Long> vipSeats) {
+	public static Map<Long, Seat> createSeats(long auditoriumId, long capacity, Set<Long> vipSeats) {
     	Map<Long, Seat> seats = new TreeMap<Long, Seat>();
 
-    	for (long i = 0; i < numberOfSeats; i++) {
-    		Long number = Long.valueOf(i + 1);
-    		seats.put(number, new Seat(auditoriumId, number, vipSeats.contains(i)));
+    	for (long i = 0; i < capacity; i++) {
+    		long number = i + 1;
+    		boolean isVip = vipSeats.contains(number);
+    		seats.put(number, new Seat(auditoriumId, number, isVip));
     	}
 
     	return seats;

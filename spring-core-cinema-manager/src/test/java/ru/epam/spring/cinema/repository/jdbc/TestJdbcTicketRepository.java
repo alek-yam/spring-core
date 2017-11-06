@@ -4,11 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.GregorianCalendar;
-import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -17,9 +13,7 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 
-import ru.epam.spring.cinema.domain.Event;
 import ru.epam.spring.cinema.domain.Ticket;
-import ru.epam.spring.cinema.domain.User;
 import ru.epam.spring.cinema.repository.filter.TicketFilter;
 
 public class TestJdbcTicketRepository {
@@ -53,10 +47,8 @@ public class TestJdbcTicketRepository {
     	assertNotNull(ticket);
     	assertEquals(1, ticket.getId().longValue());
     	assertEquals(1, ticket.getUserId().longValue());
-    	assertEquals(1, ticket.getEventId().longValue());
-    	Calendar airDate = new GregorianCalendar(2017, 0, 1, 22, 0);
-    	assertEquals(airDate, ticket.getDate());
-    	assertEquals(2, ticket.getSeat());
+    	assertEquals(2, ticket.getEventAssignmentId().longValue());
+    	assertEquals(3, ticket.getSeat().longValue());
     }
 
     @Test
@@ -71,60 +63,66 @@ public class TestJdbcTicketRepository {
     	Collection<Ticket> tickets = ticketRepository.getAll();
 
     	assertNotNull(tickets);
-    	assertEquals(2, tickets.size());
+    	assertEquals(4, tickets.size());
 
-    	List<Ticket> ticketsList = new ArrayList<Ticket>(tickets);
-    	Ticket ticket = ticketsList.get(0);
+    	Ticket ticket = tickets.iterator().next();
     	assertEquals(1, ticket.getId().longValue());
     	assertEquals(1, ticket.getUserId().longValue());
-    	assertEquals(1, ticket.getEventId().longValue());
-    	Calendar airDate = new GregorianCalendar(2017, 0, 1, 22, 0);
-    	assertEquals(airDate, ticket.getDate());
-    	assertEquals(2, ticket.getSeat());
+    	assertEquals(2, ticket.getEventAssignmentId().longValue());
+    	assertEquals(3, ticket.getSeat().longValue());
     }
 
     @Test
     public void testAddTicket() {
-    	Calendar airDate = new GregorianCalendar(2016, 5, 16);
-    	Ticket ticket = new Ticket(45L, 264L, airDate, 98L);
+    	Ticket ticket = new Ticket(2L, 3L, 4L);
 
     	int oldSize = ticketRepository.getAll().size();
     	Ticket addedTicket = ticketRepository.save(ticket);
     	int newSize = ticketRepository.getAll().size();
 
+    	// size
+    	assertEquals(oldSize + 1, newSize);
+
+    	// ticket
     	assertNotNull(addedTicket);
     	assertNotNull(addedTicket.getId());
     	assertEquals(ticket.getUserId(), addedTicket.getUserId());
-    	assertEquals(ticket.getEventId(), addedTicket.getEventId());
-    	assertEquals(ticket.getDate(), addedTicket.getDate());
+    	assertEquals(ticket.getEventAssignmentId(), addedTicket.getEventAssignmentId());
     	assertEquals(ticket.getSeat(), addedTicket.getSeat());
-    	assertEquals(oldSize + 1, newSize);
+
+    	// DB record
+    	assertNotNull(ticketRepository.getById(addedTicket.getId()));
     }
 
     @Test
     public void testUpdateTicket() {
-    	Calendar newAirDate = new GregorianCalendar(2016, 11, 28);
-    	Long newSeatNum = 10L;
-    	Ticket ticket = new Ticket(2L, 1L, 32L, newAirDate, newSeatNum);
+    	Ticket ticket = ticketRepository.getById(1L);
+    	ticket.setUserId(3L);
+    	ticket.setEventAssignmentId(4L);
+    	ticket.setSeat(1L);
 
     	int oldSize = ticketRepository.getAll().size();
     	Ticket updatedTicket = ticketRepository.save(ticket);
     	int newSize = ticketRepository.getAll().size();
 
+    	// size
+    	assertEquals(oldSize, newSize);
+
+    	// ticket
     	assertNotNull(updatedTicket);
     	assertEquals(ticket.getId(), updatedTicket.getId());
     	assertEquals(ticket.getUserId(), updatedTicket.getUserId());
-    	assertEquals(ticket.getEventId(), updatedTicket.getEventId());
-    	assertEquals(ticket.getDate(), updatedTicket.getDate());
+    	assertEquals(ticket.getEventAssignmentId(), updatedTicket.getEventAssignmentId());
     	assertEquals(ticket.getSeat(), updatedTicket.getSeat());
-    	assertEquals(oldSize, newSize);
     }
 
     @Test(expected=Exception.class)
     public void testUpdateTicketThrowsExeptionIfTicketNotFound() {
-    	Calendar newAirDate = new GregorianCalendar(2016, 11, 28);
-    	Long newSeatNum = 10L;
-    	Ticket ticket = new Ticket(999999L, 1L, 32L, newAirDate, newSeatNum);
+    	Ticket ticket = new Ticket();
+    	ticket.setId(999999L);	// nonexistent ticket
+    	ticket.setUserId(3L);
+    	ticket.setEventAssignmentId(4L);
+    	ticket.setSeat(1L);
 
     	ticketRepository.save(ticket);
     }
@@ -140,7 +138,7 @@ public class TestJdbcTicketRepository {
 
     @Test(expected=Exception.class)
     public void testRemoveTicketThrowsExeptionIfTicketNotFound() {
-    	Long ticketId = 3695732L;
+    	Long ticketId = 999999L;	// nonexistent ticket
 
     	assertNull(ticketRepository.getById(ticketId));
     	ticketRepository.removeById(ticketId);
@@ -149,25 +147,17 @@ public class TestJdbcTicketRepository {
     @Test
     public void testGetByFilter() {
     	TicketFilter filter = new TicketFilter();
-
-    	User user = new User();
-    	user.setId(1L);
-    	filter.setUser(user);
-
-    	Event event = new Event();
-    	event.setId(1L);
-    	filter.setEvent(event);
-
-    	Calendar airDate = new GregorianCalendar(2017, 0, 1, 22, 0);
-    	filter.setDate(airDate);
+    	filter.setUserId(4L);
+    	filter.setAssignmentId(2L);
 
     	Collection<Ticket> tickets = ticketRepository.getByFilter(filter);
 
+    	// uniqueness
     	assertNotNull(tickets);
     	assertEquals(1, tickets.size());
 
-    	List<Ticket> ticketsList = new ArrayList<Ticket>(tickets);
-    	Ticket ticket = ticketsList.get(0);
-    	assertEquals(1, ticket.getId().longValue());
+    	// ticket id
+    	Ticket ticket = tickets.iterator().next();
+    	assertEquals(3, ticket.getId().longValue());
     }
 }

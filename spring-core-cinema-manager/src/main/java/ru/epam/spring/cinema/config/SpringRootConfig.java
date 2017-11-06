@@ -60,26 +60,29 @@ public class SpringRootConfig {
 
 	@Bean
 	public Auditorium getBlueRoom(
+			@Value("${blueRoom.id}") Long id,
 			@Value("${blueRoom.name}") String name,
 			@Value("${blueRoom.numberOfSeats}") long numberOfSeats,
 			@Value("${blueRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(1, name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(id, name, numberOfSeats, toSetOfLongs(vipSeats));
 	}
 
 	@Bean
 	public Auditorium getGreenRoom(
+			@Value("${greenRoom.id}") Long id,
 			@Value("${greenRoom.name}") String name,
 			@Value("${greenRoom.numberOfSeats}") long numberOfSeats,
 			@Value("${greenRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(2, name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(id, name, numberOfSeats, toSetOfLongs(vipSeats));
 	}
 
 	@Bean
 	public Auditorium getRedRoom(
+			@Value("${redRoom.id}") Long id,
 			@Value("${redRoom.name}") String name,
 			@Value("${redRoom.numberOfSeats}") long numberOfSeats,
 			@Value("${redRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(3, name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(id, name, numberOfSeats, toSetOfLongs(vipSeats));
 	}
 
 	@PostConstruct

@@ -1,6 +1,6 @@
 package ru.epam.spring.cinema.ui.console.state;
 
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.Locale;
 
 import org.springframework.context.ApplicationContext;
@@ -67,7 +67,7 @@ public class UserManageState extends AbstractDomainObjectManageState<User, UserS
         System.out.println("Adding user");
         String firstName = readStringInput("First name: ");
         String lastName = readStringInput("Last name: ");
-        Calendar birthday = readDateInput("Birthday (" + ONLY_DATE_INPUT_PATTERN + "): ");
+        LocalDate birthday = readDateInput("Birthday (" + ONLY_DATE_INPUT_PATTERN + "): ");
         String email = readStringInput("E-mail: ");
 
         User user = new User();

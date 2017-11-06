@@ -40,9 +40,9 @@ public class JdbcEventStatisticRepository implements EventStatisticRepository {
     }
 
     @Override
-    public EventStatistic getByEventName(@Nonnull String eventName) {
-		String sql = "SELECT * FROM eventStatistic WHERE eventName = ?";
-        List<EventStatistic> statistics = template.query(sql, new Object[]{eventName}, new EventStatisticRowMapper());
+    public EventStatistic getByEventId(@Nonnull Long eventId) {
+		String sql = "SELECT * FROM eventStatistic WHERE eventId = ?";
+        List<EventStatistic> statistics = template.query(sql, new Object[]{eventId}, new EventStatisticRowMapper());
 
         if (statistics.size() == 0) {
         	return null;
@@ -52,7 +52,7 @@ public class JdbcEventStatisticRepository implements EventStatisticRepository {
         	return statistics.get(0);
         }
 
-        throw new RepositoryException("Cannot get event statistic by event name [" + eventName + "]: more than one found.");
+        throw new RepositoryException("Cannot get event statistic by event ID [" + eventId + "]: more than one found.");
     }
 
     @Override
@@ -65,7 +65,7 @@ public class JdbcEventStatisticRepository implements EventStatisticRepository {
     @Override
     public void save(@Nonnull EventStatistic object) {
 		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("eventName", object.getEventName());
+		paramMap.put("eventId", object.getEventId());
 		paramMap.put("accessedByNameCount", object.getAccessedByNameCount());
 		paramMap.put("priceWereQueriedCount", object.getPriceWereQueriedCount());
 		paramMap.put("ticketsWereBookedCount", object.getTicketsWereBookedCount());
@@ -76,12 +76,12 @@ public class JdbcEventStatisticRepository implements EventStatisticRepository {
 
 		@Override
         public EventStatistic mapRow(ResultSet rs, int rowNum) throws SQLException {
-			String eventName = rs.getString("eventName");
+			Long eventId = rs.getLong("eventId");
 			Long accessedByNameCount = rs.getLong("accessedByNameCount");
 			Long priceWereQueriedCount = rs.getLong("priceWereQueriedCount");
 			Long ticketsWereBookedCount = rs.getLong("ticketsWereBookedCount");
 
-			EventStatistic stat = new EventStatistic(eventName);
+			EventStatistic stat = new EventStatistic(eventId);
 			stat.setAccessedByNameCount(accessedByNameCount);
 			stat.setPriceWereQueriedCount(priceWereQueriedCount);
 			stat.setTicketsWereBookedCount(ticketsWereBookedCount);
@@ -93,12 +93,12 @@ public class JdbcEventStatisticRepository implements EventStatisticRepository {
 
 	private static final class MergeEventStatistic extends SqlUpdate {
 		private static final String SQL_MERGE_STATISTIC =
-				"MERGE INTO eventStatistic (eventName, accessedByNameCount, priceWereQueriedCount, ticketsWereBookedCount) " +
-				"VALUES (:eventName, :accessedByNameCount, :priceWereQueriedCount, :ticketsWereBookedCount)";
+				"MERGE INTO eventStatistic (eventId, accessedByNameCount, priceWereQueriedCount, ticketsWereBookedCount) " +
+				"VALUES (:eventId, :accessedByNameCount, :priceWereQueriedCount, :ticketsWereBookedCount)";
 
 		public MergeEventStatistic(DataSource dataSource) {
 			super(dataSource, SQL_MERGE_STATISTIC);
-			declareParameter(new SqlParameter("eventName", Types.VARCHAR));
+			declareParameter(new SqlParameter("eventId", Types.INTEGER));
 			declareParameter(new SqlParameter("accessedByNameCount", Types.INTEGER));
 			declareParameter(new SqlParameter("priceWereQueriedCount", Types.INTEGER));
 			declareParameter(new SqlParameter("ticketsWereBookedCount", Types.INTEGER));

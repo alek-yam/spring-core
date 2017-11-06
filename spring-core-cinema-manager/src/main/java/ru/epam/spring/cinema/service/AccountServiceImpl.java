@@ -44,7 +44,8 @@ public class AccountServiceImpl implements AccountService {
 		UserAccount account = accountRepository.getByUserId(user.getId());
 
 		if (account == null) {
-			account = new UserAccount(user.getId());
+			account = new UserAccount();
+			account.setUserId(user.getId());
 			account.setBalance(sum);
 		} else {
 			double balance = account.getBalance();
