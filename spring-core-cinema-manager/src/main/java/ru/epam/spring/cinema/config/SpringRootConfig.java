@@ -62,27 +62,27 @@ public class SpringRootConfig {
 	public Auditorium getBlueRoom(
 			@Value("${blueRoom.id}") Long id,
 			@Value("${blueRoom.name}") String name,
-			@Value("${blueRoom.numberOfSeats}") long numberOfSeats,
+			@Value("${blueRoom.capacity}") long capacity,
 			@Value("${blueRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(id, name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(id, name, capacity, toSetOfLongs(vipSeats));
 	}
 
 	@Bean
 	public Auditorium getGreenRoom(
 			@Value("${greenRoom.id}") Long id,
 			@Value("${greenRoom.name}") String name,
-			@Value("${greenRoom.numberOfSeats}") long numberOfSeats,
+			@Value("${greenRoom.capacity}") long capacity,
 			@Value("${greenRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(id, name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(id, name, capacity, toSetOfLongs(vipSeats));
 	}
 
 	@Bean
 	public Auditorium getRedRoom(
 			@Value("${redRoom.id}") Long id,
 			@Value("${redRoom.name}") String name,
-			@Value("${redRoom.numberOfSeats}") long numberOfSeats,
+			@Value("${redRoom.capacity}") long capacity,
 			@Value("${redRoom.vipSeats}") String vipSeats) {
-		return new Auditorium(id, name, numberOfSeats, toSetOfLongs(vipSeats));
+		return new Auditorium(id, name, capacity, toSetOfLongs(vipSeats));
 	}
 
 	@PostConstruct

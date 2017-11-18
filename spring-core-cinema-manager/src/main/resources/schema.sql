@@ -9,8 +9,7 @@ CREATE TABLE seats (
   auditoriumId INT     NOT NULL,
   number       INT     NOT NULL,
   vip          BOOLEAN NOT NULL,
-  PRIMARY KEY (auditoriumId, number),
-  FOREIGN KEY(auditoriumId) REFERENCES auditoriums(id) ON DELETE CASCADE ON UPDATE CASCADE
+  PRIMARY KEY (auditoriumId, number)
 );
 
 CREATE TABLE events (
@@ -27,8 +26,7 @@ CREATE TABLE eventAssignments (
   airDate      TIMESTAMP NOT NULL,
   auditoriumId INT       NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY(eventId) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  FOREIGN KEY(auditoriumId) REFERENCES auditoriums(id) ON DELETE CASCADE ON UPDATE CASCADE
+  FOREIGN KEY(eventId) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE users (

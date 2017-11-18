@@ -54,19 +54,6 @@ public class Auditorium extends DomainObject {
         		.boxed().collect(Collectors.toSet());
     }
 
-//    public long countVipSeats(Collection<Long> seatNumbers) {
-//    	long count = 0;
-//
-//    	for (Long sn : seatNumbers) {
-//    		Seat seat = seats.get(sn);
-//    		if (seat != null && seat.isVip()) {
-//    			count++;
-//    		}
-//    	}
-//
-//    	return count;
-//    }
-
 	@Override
 	public String toString() {
 		return "Auditorium [id=" + getId()
